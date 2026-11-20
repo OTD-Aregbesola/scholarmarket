@@ -233,13 +233,18 @@ export async function sendWeeklyAdminReport(overrideStats) {
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@scholarmarket.local'
   const subject = `ScholarMarket Weekly Report — w/c ${new Date(stats.weekStart).toISOString().slice(0, 10)}`
 
-  await transporter.sendMail({
-    from,
-    to: adminEmails.join(', '),
-    subject,
-    text: buildReportText(stats),
-    html: buildReportHtml(stats),
-  })
+  try {
+    await transporter.sendMail({
+      from,
+      to: adminEmails.join(', '),
+      subject,
+      text: buildReportText(stats),
+      html: buildReportHtml(stats),
+    })
 
-  return { delivered: adminEmails, stats }
+    return { delivered: adminEmails, stats }
+  } catch (err) {
+    console.error('[email:adminReport] Failed to send weekly admin report:', err)
+    return { delivered: [], stats, error: err instanceof Error ? err.message : String(err) }
+  }
 }

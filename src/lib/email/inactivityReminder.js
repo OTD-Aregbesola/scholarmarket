@@ -1,5 +1,14 @@
 import nodemailer from "nodemailer";
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function createTransporter() {
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = Number(process.env.SMTP_PORT || 0);
@@ -109,7 +118,7 @@ export async function sendInactivityReminder(to, name, inactiveDays, stats) {
                           Your catalog needs attention
                         </h1>
                         <p class="muted" style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,'Apple Color Emoji','Segoe UI Emoji';">
-                          Hi ${name}, your ScholarMarket profile has been inactive for <strong>${inactiveDays} days</strong>.
+                          Hi ${escapeHtml(name)}, your ScholarMarket profile has been inactive for <strong>${inactiveDays} days</strong>.
                         </p>
                       </td>
                     </tr>
@@ -177,5 +186,11 @@ export async function sendInactivityReminder(to, name, inactiveDays, stats) {
     </body>
   </html>`;
 
-  await transporter.sendMail({ from, to, subject, text, html });
+  try {
+    await transporter.sendMail({ from, to, subject, text, html });
+    return { sent: true };
+  } catch (err) {
+    console.error("[email:inactivityReminder] Failed to send inactivity reminder:", err);
+    return { sent: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
