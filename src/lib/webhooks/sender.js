@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/mongodb';
 import { logger } from '@/lib/logger';
+import { sendSignedWebhook } from './signing.js';
 
 export async function getDailyStats(db) {
   const now = new Date();
@@ -48,50 +49,19 @@ export async function getDailyStats(db) {
   };
 }
 
-export async function sendWebhookWithRetry(url, payload, retries = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+export { sendSignedWebhook };
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'ScholarMarket-Webhook-Sender/1.0',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        logger.info(`Webhook sent successfully to ${url}`);
-        return true;
-      } else {
-        logger.warn(`Webhook failed (Attempt ${attempt}/${retries}): ${response.status} ${response.statusText}`);
-      }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        logger.warn(`Webhook timeout (Attempt ${attempt}/${retries}) for ${url}`);
-      } else {
-        logger.error(`Webhook error (Attempt ${attempt}/${retries}) for ${url}: ${error.message}`);
-      }
-    }
-
-    if (attempt < retries) {
-      // Exponential backoff: 1s, 2s, 4s...
-      const delay = Math.pow(2, attempt - 1) * 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-
-  logger.error(`Webhook failed permanently after ${retries} attempts for ${url}`);
-  return false;
+/**
+ * Backwards-compatible alias. Retries are owned by the outbox, not the
+ * sender, so the extra `retries` argument is intentionally ignored.
+ */
+export async function sendWebhookWithRetry(url, payload) {
+  const sent = await sendSignedWebhook(url, payload);
+  logger.info(`Webhook sent successfully to ${url}`);
+  return sent;
 }
 
-import { enqueueSideEffect } from '@/lib/backend/outbox';
+import { enqueueSideEffect, WEBHOOK_OUTBOX_CONFIG } from '@/lib/backend/outbox';
 
 export async function broadcastPurchaseEvent(materialId, purchaseData) {
   try {
@@ -137,6 +107,7 @@ export async function broadcastPurchaseEvent(materialId, purchaseData) {
           payload,
         },
       },
+      config: WEBHOOK_OUTBOX_CONFIG,
     });
 
   } catch (error) {
