@@ -9,6 +9,7 @@ import { checkBuyerTrustline } from '@/lib/stellar/horizonClient';
 import { withApiHardening } from "@/lib/api/hardening";
 import { API_RATE_LIMITS } from "@/lib/api/rateLimitConfig";
 import { withRequestLogger } from "@/lib/logger";
+import { CHECKOUT_INTENT_TTL_SECONDS } from "@/lib/db/ttl";
 
 /**
  * POST /api/checkout/initiate
@@ -109,7 +110,7 @@ export const POST = withRequestLogger(async function POST(req, context, requestL
       geolocation: checkoutWithTax.geolocation,
       status: 'initiated',
       createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+      expiresAt: new Date(Date.now() + CHECKOUT_INTENT_TTL_SECONDS * 1000),
     };
 
     const result = await db.collection('checkout_intents').insertOne(checkoutIntent);

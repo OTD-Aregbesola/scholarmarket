@@ -1,7 +1,6 @@
 // Resolves: Configure efficient MongoDB connection pooling in the Next.js API routes to handle concurrent requests.
 import { cpus } from "node:os";
 import { MongoClient } from "mongodb";
-import { REQUIRED_INDEXES } from "./backend/schemaContracts.js";
 
 const uri = process.env.MONGODB_URI;
 
@@ -75,86 +74,6 @@ function getClientPromise() {
   return globalForMongo._mongoClientPromise;
 }
 
-let indexesCreated = false;
-
-async function ensureIndexes(db) {
-  try {
-    const materials = db.collection("materials");
-    const purchases = db.collection("purchases");
-    const users = db.collection("users");
-    const outbox = db.collection("side_effect_outbox");
-    const auditLogs = db.collection("audit_logs");
-
-    await materials.createIndex(
-      { category: 1, price: 1 },
-      { name: "materials_category_price_idx", background: true },
-    );
-    await materials.createIndex(
-      { title: "text", description: "text" },
-      { name: "materials_text_idx", background: true },
-    );
-    await materials.createIndex(
-      { category: 1, price: 1, title: 1, description: 1 },
-      { name: "materials_search_compound_idx", background: true },
-    );
-
-    await purchases.createIndex(
-      { userId: 1, createdAt: -1 },
-      { name: "purchases_userId_createdAt_idx", background: true },
-    );
-    await purchases.createIndex(
-      { status: 1, updatedAt: -1 },
-      { name: "purchases_status_updatedAt_idx", background: true },
-    );
-
-    await users.createIndex(
-      { email: 1 },
-      { name: "users_email_idx", unique: true, background: true },
-    );
-    await users.createIndex(
-      { createdAt: -1 },
-      { name: "users_createdAt_idx", background: true },
-    );
-
-    await outbox.createIndex(
-      { status: 1, nextAttemptAt: 1, createdAt: 1 },
-      { name: "outbox_poll_idx", background: true },
-    );
-    await outbox.createIndex(
-      { deliveryId: 1 },
-      { name: "outbox_delivery_id_idx", unique: true, background: true },
-    );
-    await outbox.createIndex(
-      { sourceAggregate: 1, sourceId: 1 },
-      { name: "outbox_source_idx", background: true },
-    );
-    await outbox.createIndex(
-      { status: 1, leaseExpiresAt: 1 },
-      { name: "outbox_lease_idx", background: true, sparse: true },
-    );
-
-    await auditLogs.createIndex(
-      { actor: 1 },
-      { name: "audit_actor_idx", background: true },
-    );
-    await auditLogs.createIndex(
-      { action: 1 },
-      { name: "audit_action_idx", background: true },
-    );
-    await auditLogs.createIndex(
-      { createdAt: -1 },
-      { name: "audit_createdAt_idx", background: true },
-    );
-
-    console.log("MongoDB indexes ensured successfully.");
-  } catch (error) {
-    console.error(
-      "[Database Index Error]: Failed to create MongoDB indexes:",
-      error,
-    );
-  }
-}
-
 export async function getDb() {
   try {
     const client = await getClientPromise();
@@ -162,13 +81,6 @@ export async function getDb() {
     // Otherwise, fallback to "scholarmarket".
     const dbName = process.env.MONGODB_DB || "scholarmarket";
     const db = client.db(dbName);
-
-    if (!indexesCreated) {
-      indexesCreated = true;
-      ensureIndexes(db).catch((err) =>
-        console.error("[Database Index Async Error]:", err),
-      );
-    }
 
     return db;
   } catch (error) {

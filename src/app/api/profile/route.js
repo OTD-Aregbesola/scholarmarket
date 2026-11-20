@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { randomUUID } from "node:crypto";
 import { auditLog } from "@/lib/api/audit";
 import { withApiHardening } from "@/lib/api/hardening";
 import {
@@ -43,6 +44,7 @@ export async function POST(request) {
     }
 
     const newUser = {
+      uuid: randomUUID(),
       ...profile,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

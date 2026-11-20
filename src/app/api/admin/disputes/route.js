@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
 import { verifyAdminAuth } from "@/lib/auth/adminAuth";
 import { auditLog } from "@/lib/api/audit";
+import { paginate } from "@/lib/pagination/cursor";
 
 export async function GET(request) {
   try {
@@ -15,16 +16,24 @@ export async function GET(request) {
     }
     const user = auth.user;
 
-    const db = await getDb();
-    const disputes = await db
-      .collection("disputes")
-      .find({})
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .toArray();
+    const url = new URL(request.url);
+    const cursor = url.searchParams.get("cursor");
+    const limit = url.searchParams.get("limit");
 
-    return NextResponse.json({ disputes });
+    const db = await getDb();
+    const page = await paginate({
+      collection: db.collection("disputes"),
+      filter: {},
+      sort: { createdAt: -1, _id: -1 },
+      cursor,
+      limit,
+    });
+
+    return NextResponse.json({ items: page.items, nextCursor: page.nextCursor, hasMore: page.hasMore });
   } catch (error) {
+    if (error.code === "INVALID_CURSOR") {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     logger.error("[admin/disputes] GET error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
