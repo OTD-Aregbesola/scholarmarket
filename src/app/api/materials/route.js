@@ -8,16 +8,18 @@ import { getUserFromCookie } from "@/lib/api/auth";
 import { getDb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { buildMaterialHistoryEntry, EDITABLE_MATERIAL_FIELDS } from "@/lib/backend/schemaContracts";
+import { withRevisionHistory } from "@/lib/materials/revisions";
 import { cacheGet, cacheSet, invalidateMarketplaceCache } from "@/lib/cache/redis";
 import { paginate } from "@/lib/pagination/cursor";
 
 import { logger } from "@/lib/logger";
+import { notifyPriceDrop } from "@/lib/backend/priceDropNotifications";
 export const runtime = "nodejs";
 
 function sanitizeMaterial(doc) {
   if (!doc) return doc;
   const { storageKey, fileUrl, metadataUrl, ...safe } = doc;
-  return safe;
+  return withRevisionHistory(safe);
 }
 
 /**
@@ -236,6 +238,10 @@ export async function PUT(request) {
           { $set: updateDoc },
           { returnDocument: "after" }
         );
+
+        if (updates.price !== undefined && Number(updates.price) < Number(existing.price)) {
+          await notifyPriceDrop(db, { materialId, oldPrice: existing.price, newPrice: updates.price });
+        }
 
         const historyEntry = buildMaterialHistoryEntry({
           materialId,

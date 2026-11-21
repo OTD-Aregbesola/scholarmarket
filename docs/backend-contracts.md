@@ -233,3 +233,4 @@ Response:
 - Apply rate limits to public and sensitive route families.
 - Emit structured audit logs for validation failures, rate-limit blocks, upload failures, auth failures, purchase sync, and indexer anomalies.
 - Add focused tests for validation, rate limiting, and indexer idempotency when changing backend behavior.
+- Sign outbound webhooks and verify them as described in [webhook-signatures.md](./webhook-signatures.md).

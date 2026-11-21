@@ -278,3 +278,58 @@ export async function sendReceiptIfEligible(db, purchaseId) {
   }
 }
 
+
+/** Notifies an existing buyer that a material has a new file revision. */
+export async function sendMaterialRevisionEmail(to, material, revision, buyerAddress = '') {
+  const defaultFrom = process.env.EMAIL_USER || 'no-reply@scholarmarket.local';
+  const from = process.env.EMAIL_FROM || defaultFrom;
+  const transporter = createTransporter();
+
+  const title = material?.title || 'Study Material';
+  const version = revision?.id || 'new version';
+  const changelog = revision?.changelog || 'Updated content';
+  const changedAt = new Date(revision?.createdAt || Date.now()).toLocaleString();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const materialUrl = `${appUrl}/dashboard/my-materials`;
+  const subject = `Updated revision available: ${title}`;
+
+  const text = [
+    `Hi,`,
+    ``,
+    `A new revision of "${title}" is now available.`,
+    ``,
+    `- Version: ${version}`,
+    `- What changed: ${changelog}`,
+    `- Published: ${changedAt}`,
+    ``,
+    `Your existing access still works. Download the latest file from your library:`,
+    materialUrl,
+    ``,
+    `Cheers,`,
+    `ScholarMarket Team`,
+  ].join('\n');
+
+  const html = `
+  <!doctype html>
+  <html lang="en">
+    <head><meta charset="utf-8" /><title>Material Updated</title></head>
+    <body style="margin:0;padding:0;background:#f6f9fc;font-family:sans-serif;">
+      <div style="max-width:600px;margin:20px auto;padding:20px;background:#ffffff;border-radius:12px;">
+        <h1 style="font-size:20px;color:#111827;">New revision available</h1>
+        <p style="font-size:14px;color:#4b5563;">A new revision of <strong>${title}</strong> is now available.</p>
+        <ul style="font-size:14px;color:#4b5563;">
+          <li>Version: ${version}</li>
+          <li>What changed: ${changelog}</li>
+          <li>Published: ${changedAt}</li>
+        </ul>
+        <p style="font-size:14px;color:#4b5563;">Your existing access still works. No repurchase is needed.</p>
+        <div style="margin:30px 0;text-align:center;">
+          <a href="${materialUrl}" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;display:inline-block;">Open My Library</a>
+        </div>
+        <p style="color:#9ca3af;font-size:12px;text-align:center;">© ${new Date().getFullYear()} ScholarMarket</p>
+      </div>
+    </body>
+  </html>`;
+
+  await transporter.sendMail({ from, to, subject, text, html });
+}

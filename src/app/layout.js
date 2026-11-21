@@ -9,6 +9,7 @@ import CartDrawer from "@/components/CartDrawer";
 import ComparisonMatrix from "@/components/ComparisonMatrix";
 import CompareTray from "@/components/CompareTray";
 import RouteFocusManager from "@/components/RouteFocusManager";
+import SessionExpiredModal from "@/components/SessionExpiredModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,6 +63,7 @@ export default function RootLayout({ children }) {
         <RouteFocusManager />
         <WalletProvider>
           <ToastProvider>
+            <SessionExpiredModal />
             <CartProvider>
               <ComparisonProvider>
                 <TransactionProvider>

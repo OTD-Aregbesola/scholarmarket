@@ -5,6 +5,7 @@ import { checkRateLimit } from "./rateLimit";
 import { ValidationError } from "./validation";
 import { captureException } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
+import { DEFAULT_JSON_LIMIT, installJsonBodyLimit } from "./jsonBody";
 
 function clientKey(request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -18,6 +19,15 @@ export async function withApiHardening(request, options, handler) {
   const identity = options.key ? await options.key(request) : clientKey(request);
   const rateLimit = checkRateLimit(`${route}:${method}:${identity}`, options.rateLimit);
   const requestLogger = logger.child({ requestId, route, method });
+
+  if (["POST", "PUT", "PATCH"].includes(method) && request.headers.get("content-type")?.includes("application/json")) {
+    const maxBytes = options.maxJsonBytes || DEFAULT_JSON_LIMIT;
+    installJsonBodyLimit(request, { maxBytes });
+    const contentLength = Number(request.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+      return NextResponse.json({ type: "about:blank", title: "Payload too large", status: 413 }, { status: 413, headers: { "X-Request-ID": requestId } });
+    }
+  }
 
   if (!rateLimit.allowed) {
     requestLogger.warn({ requestId, identity: identity === "local" ? undefined : identity }, "Rate limit exceeded");
@@ -40,6 +50,9 @@ export async function withApiHardening(request, options, handler) {
     if (response?.headers) response.headers.set("x-request-id", requestId);
     return response;
   } catch (error) {
+    if (error?.status === 413) {
+      return NextResponse.json({ type: "about:blank", title: "Payload too large", status: 413 }, { status: 413, headers: { "X-Request-ID": requestId } });
+    }
     if (error instanceof ValidationError) {
       auditLog({ event: "validation_failed", route, method, status: 400, reason: error.message });
       return NextResponse.json({ error: error.message, details: error.details }, { status: 400 });

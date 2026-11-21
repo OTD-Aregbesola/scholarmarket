@@ -9,6 +9,7 @@ import { savedMaterialService } from "@/services/savedMaterialService";
 const STORAGE_PREFIX = "scholarmarket.savedMaterials.v1";
 
 function getMaterialId(material) {
+  if (typeof material === 'string') return material;
   return String(material?._id || material?.id || material?.materialId || "");
 }
 

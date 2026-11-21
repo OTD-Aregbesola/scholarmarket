@@ -29,6 +29,8 @@ docker compose up -d mongodb
 npm run dev
 ```
 
+To develop shared UI primitives, run `npm run storybook`; use `npm run build-storybook` to verify the static build. Add or update a story when changing a component in `src/components/ui`.
+
 ## Branching
 
 - Use a short descriptive branch name such as `docs/stellar-submission` or `feat/entitlement-checks`.

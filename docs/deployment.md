@@ -155,6 +155,28 @@ Set these in **Repository Settings → Secrets and variables → Actions**:
 | `SENTRY_DSN` | Sentry DSN for server-side error tracking (omit to disable) |
 | `NEXT_PUBLIC_SENTRY_DSN` | Same DSN exposed to the browser bundle |
 
+### Health probes
+
+Three endpoints are available for orchestrators:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/health/live` | Liveness. Returns 200 while the Node process is running. It calls no dependencies. |
+| `GET /api/health/ready` | Readiness. Returns 200 only when MongoDB, Redis, Pinata, email, Stellar and the indexer pass. Otherwise 503. |
+| `GET /api/health` | Backward-compatible aggregate. Keeps the original `services` string map and adds `indexerLag` and `checks`. |
+
+Readiness fails when Redis is configured but unreachable, and when indexer lag exceeds the configured threshold. When `REDIS_URL` is unset, Redis is reported as `not_configured` and does not fail readiness because the cache is optional.
+
+Tuning variables, all optional:
+
+| Variable | Default | Description |
+|---|---|---|
+| `HEALTH_CHECK_TIMEOUT_MS` | `2000` | Timeout applied to each dependency check |
+| `HEALTH_RPC_CACHE_TTL_MS` | `5000` | TTL for the shared RPC health response used by Stellar and lag checks |
+| `INDEXER_LAG_THRESHOLD` | `50` | Ledgers of lag allowed before readiness fails. Set to `0` to disable the threshold. |
+
+The readiness payload reports `indexerLag` with `lag`, `latestLedger`, `lastIndexedLedger` and `threshold`.
+
 ---
 
 ## 3. MongoDB Atlas Setup

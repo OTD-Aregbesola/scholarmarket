@@ -1,9 +1,25 @@
 import { apiClient } from '@/lib/api/apiClient';
 import { cursorQuery } from '@/lib/pagination/query';
+import { generateIdempotencyKey } from '@/lib/api/clientIdempotency';
+
+function resolveIdempotencyKey(options = {}) {
+  if (options.idempotencyKey === null) return undefined;
+  return options.idempotencyKey || generateIdempotencyKey();
+}
 
 export const purchaseService = {
-  createPurchase: async (purchaseData) => {
-    return apiClient('/api/purchase', { body: purchaseData });
+  initiateCheckout: async (checkoutData, options = {}) => {
+    return apiClient('/api/checkout/initiate', {
+      body: checkoutData,
+      idempotencyKey: resolveIdempotencyKey(options),
+    });
+  },
+
+  createPurchase: async (purchaseData, options = {}) => {
+    return apiClient('/api/purchase', {
+      body: purchaseData,
+      idempotencyKey: resolveIdempotencyKey(options),
+    });
   },
 
   checkEntitlement: async (materialId, buyerAddress) => {
@@ -27,4 +43,3 @@ export const purchaseService = {
     return apiClient(`/api/purchased-materials${cursorQuery(cursor, limit)}`);
   },
 };
-

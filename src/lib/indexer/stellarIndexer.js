@@ -131,6 +131,8 @@ export async function applyIndexedEvent(db, event, { now = new Date(), enqueue =
         },
       }).catch(err => console.error(err));
     }
+
+    await invalidateAnalyticsForEvent(db, event);
   }
 
   if (event.type === "purchase.refunded") {
@@ -143,6 +145,26 @@ export async function applyIndexedEvent(db, event, { now = new Date(), enqueue =
 async function defaultEnqueue(entry) {
   const { enqueueSideEffect } = await import("../backend/outbox.js");
   return enqueueSideEffect(entry);
+}
+
+/**
+ * Invalidates creator analytics after a purchase or refund is indexed. Cache
+ * failures are swallowed so a Redis outage can never block event processing.
+ */
+async function invalidateAnalyticsForEvent(db, event) {
+  try {
+    const {
+      invalidateCreatorAnalytics,
+      invalidateCreatorAnalyticsForMaterial,
+    } = await import('../cache/creatorAnalytics.js');
+    if (event.sellerAddress) {
+      await invalidateCreatorAnalytics(event.sellerAddress);
+    } else {
+      await invalidateCreatorAnalyticsForMaterial(db, event.materialId);
+    }
+  } catch {
+    // Analytics are derived data; a failed invalidation is corrected by the TTL.
+  }
 }
 
 async function applyRefundEvent(db, event, refundEventId, { now, enqueue }) {
@@ -179,6 +201,10 @@ async function applyRefundEvent(db, event, refundEventId, { now, enqueue }) {
       }
     );
   }
+
+  // Analytics must be invalidated on replay too, since the purchase state may
+  // still have changed on a retry after a partial failure.
+  await invalidateAnalyticsForEvent(db, event);
 
   // Only notify the buyer the first time this refund is applied, so replaying
   // a ledger range never sends duplicate emails.

@@ -12,6 +12,12 @@ const DEFAULT_CONFIG = {
   jitterFraction: 0.2,
 };
 
+/** Webhooks get six delivery attempts, each with exponential backoff and jitter. */
+export const WEBHOOK_OUTBOX_CONFIG = {
+  ...DEFAULT_CONFIG,
+  maxAttempts: 6,
+};
+
 function computeNextAttempt(attemptCount, baseConfig = DEFAULT_CONFIG) {
   const exponential = baseConfig.initialBackoffMs * Math.pow(baseConfig.backoffMultiplier, attemptCount);
   const capped = Math.min(exponential, baseConfig.maxBackoffMs);
@@ -37,6 +43,7 @@ export async function enqueueSideEffect({
     leaseExpiresAt: null,
     deliveryId: uuidv7(),
     attemptCount: 0,
+    maxAttempts: config.maxAttempts,
     nextAttemptAt: now,
     lastError: null,
     deliveredAt: null,
@@ -79,7 +86,8 @@ export async function leaseNextIntent(workerId, config = DEFAULT_CONFIG) {
   if (!claimed.value) return null;
 
   const intent = claimed.value;
-  if (intent.attemptCount >= config.maxAttempts) {
+  const maxAttempts = intent.maxAttempts ?? config.maxAttempts;
+  if (intent.attemptCount > maxAttempts) {
     await db.collection(OUTBOX_COLLECTION).updateOne(
       { _id: intent._id },
       {
@@ -151,15 +159,19 @@ export async function releaseLease(intentId, workerId) {
   );
 }
 
-export async function replayDeadLetters(limit = 100) {
+/** Builds the dead-letter replay filter, optionally scoped to one intent type. */
+export function buildDeadLetterFilter(intentType) {
+  const filter = { status: 'dead_letter', deliveredAt: null };
+  if (intentType) filter['intent.type'] = intentType;
+  return filter;
+}
+
+export async function replayDeadLetters(limit = 100, { intentType } = {}) {
   const db = await getDb();
   const now = new Date();
 
   const result = await db.collection(OUTBOX_COLLECTION).updateMany(
-    {
-      status: 'dead_letter',
-      deliveredAt: null,
-    },
+    buildDeadLetterFilter(intentType),
     {
       $set: {
         status: 'pending',

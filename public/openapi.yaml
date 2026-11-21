@@ -654,6 +654,12 @@ components:
             $ref: "#/components/schemas/Error"
           example:
             error: "Material not found"
+    Conflict:
+      description: Idempotency-Key conflict or request in progress
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Error"
     RateLimited:
       description: Too many requests
       content:
@@ -1009,6 +1015,15 @@ paths:
         Initiates or confirms a purchase of an educational material. If payment
         details (transactionHash or signedXdr) are provided, the purchase is
         marked as confirmed immediately. Otherwise it enters a pending state.
+        Supports idempotent retries via the `Idempotency-Key` header.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+          description: Optional unique key to safely deduplicate retries for 24 hours.
       requestBody:
         required: true
         content:
@@ -1073,6 +1088,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /api/purchased-materials:
     get:
@@ -1324,6 +1341,15 @@ paths:
         Creates a checkout intent with tax estimation based on buyer geolocation.
         Verifies the buyer holds a trustline for the payment asset. Applies any
         valid discount code. The intent expires after 30 minutes.
+        Supports idempotent retries via the `Idempotency-Key` header.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+          description: Optional unique key to safely deduplicate retries for 24 hours.
       requestBody:
         required: true
         content:
@@ -1372,6 +1398,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /api/checkout/verify:
     post:

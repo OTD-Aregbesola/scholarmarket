@@ -13,6 +13,7 @@ export const COLLECTIONS = {
   disputes: "disputes",
   sideEffectOutbox: "side_effect_outbox",
   auditLogs: "audit_logs",
+  idempotencyKeys: "idempotency_keys",
 };
 
 export const REQUIRED_INDEXES = {
@@ -103,6 +104,9 @@ export const REQUIRED_INDEXES = {
       keys: { createdAt: -1 },
       options: { name: "audit_createdAt_idx", background: true },
     },
+  idempotency_keys: [
+    { keys: { key: 1 }, options: { unique: true, name: "idempotency_key_unique_idx" } },
+    { keys: { createdAt: 1 }, options: { expireAfterSeconds: 86400, name: "idempotency_createdAt_ttl_idx" } },
   ],
 };
 

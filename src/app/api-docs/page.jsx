@@ -7,13 +7,24 @@
  * Route: /api-docs
  */
 
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
-import "swagger-ui-react/swagger-ui.css";
 
-// Lazy-load SwaggerUI — it is large and only needed on this page.
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 
 export default function ApiDocsPage() {
+  useEffect(() => {
+    // Lazy-load swagger-ui CSS only on this page
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css';
+    document.head.appendChild(link);
+
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   return (
     <div style={{ padding: "1rem", maxWidth: "1400px", margin: "0 auto" }}>
       <div style={{ marginBottom: "1rem" }}>

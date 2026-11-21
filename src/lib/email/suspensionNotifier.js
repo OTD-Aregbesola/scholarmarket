@@ -1,6 +1,15 @@
 import nodemailer from 'nodemailer'
 import { renderSuspensionEmail, renderReactivationEmail } from './templates/suspension.js'
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function createTransporter() {
   const smtpHost = process.env.SMTP_HOST
   const smtpPort = Number(process.env.SMTP_PORT || 0)
@@ -28,6 +37,222 @@ function createTransporter() {
     auth: { user: smtpUser, pass: smtpPass },
   })
 }
+
+// ---------------------------------------------------------------------------
+// Suspension email
+// ---------------------------------------------------------------------------
+function buildSuspensionHtml({ name, reason, appealEmail }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const supportEmail = appealEmail || process.env.SUPPORT_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@scholarmarket.local'
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Your ScholarMarket Account Has Been Suspended</title>
+  <style>
+    @media (prefers-color-scheme:dark){
+      .card{background:#111827!important;color:#e5e7eb!important;}
+      .muted{color:#9ca3af!important;}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f6f9fc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6f9fc;">
+    <tr><td align="center" style="padding:24px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;">
+        <tr>
+          <td style="padding:0 0 12px 0;" align="center">
+            <a href="${appUrl}" style="text-decoration:none;color:#111827;">
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:18px;">ScholarMarket</span>
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td class="card" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+              <tr>
+                <td style="padding:0;">
+                  <div style="background:#dc2626;padding:16px 24px;">
+                    <p style="margin:0;font-size:13px;font-weight:600;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:0.05em;text-transform:uppercase;">Account Notice</p>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px 24px 8px 24px;">
+                  <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.3;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    Your account has been suspended
+                  </h1>
+                  <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    Hi ${escapeHtml(name)},
+                  </p>
+                  <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    We've temporarily suspended access to your ScholarMarket account. Here's why:
+                  </p>
+                  <div style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:4px;padding:12px 16px;margin:0 0 20px 0;">
+                    <p style="margin:0;font-size:14px;line-height:1.6;color:#7f1d1d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                      ${escapeHtml(reason || 'Violation of ScholarMarket community guidelines or terms of service.')}
+                    </p>
+                  </div>
+                  <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">What this means:</p>
+                  <ul style="margin:0 0 20px 0;padding-left:20px;">
+                    <li style="font-size:14px;line-height:1.8;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">You cannot log in to your account while it is suspended.</li>
+                    <li style="font-size:14px;line-height:1.8;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Your published materials will be unlisted for the duration of the suspension.</li>
+                    <li style="font-size:14px;line-height:1.8;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Pending payouts may be placed on hold.</li>
+                  </ul>
+                  <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">How to appeal:</p>
+                  <p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    If you believe this action was taken in error, you can appeal by replying to this email or contacting us at
+                    <a href="mailto:${supportEmail}" style="color:#2563eb;text-decoration:none;">${supportEmail}</a>.
+                    Please include your account email address and a brief explanation.
+                  </p>
+                  <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Our guidelines:</p>
+                  <p style="margin:0 0 24px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    You can read our full community guidelines and terms of service at
+                    <a href="${appUrl}/terms" style="color:#2563eb;text-decoration:none;">${appUrl}/terms</a>.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:16px 8px 0 8px;">
+            <p class="muted" style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              You're receiving this because your ScholarMarket account status changed.
+            </p>
+            <p class="muted" style="margin:0 0 24px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              © ${new Date().getUTCFullYear()} ScholarMarket
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+function buildSuspensionText({ name, reason, appealEmail }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const supportEmail = appealEmail || process.env.SUPPORT_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'support@scholarmarket.local'
+  return [
+    `Hi ${name},`,
+    ``,
+    `Your ScholarMarket account has been suspended.`,
+    ``,
+    `Reason: ${reason || 'Violation of ScholarMarket community guidelines or terms of service.'}`,
+    ``,
+    `What this means:`,
+    `- You cannot log in while your account is suspended.`,
+    `- Your published materials will be unlisted for the duration of the suspension.`,
+    `- Pending payouts may be placed on hold.`,
+    ``,
+    `How to appeal:`,
+    `Reply to this email or contact us at ${supportEmail}. Please include your account`,
+    `email address and a brief explanation if you believe this is an error.`,
+    ``,
+    `Community guidelines: ${appUrl}/terms`,
+    ``,
+    `ScholarMarket Team`,
+  ].join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// Reactivation email
+// ---------------------------------------------------------------------------
+function buildReactivationHtml({ name }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const dashboardUrl = `${appUrl}/dashboard`
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Your ScholarMarket Account Has Been Reactivated</title>
+  <style>
+    @media (prefers-color-scheme:dark){
+      .card{background:#111827!important;color:#e5e7eb!important;}
+      .muted{color:#9ca3af!important;}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f6f9fc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6f9fc;">
+    <tr><td align="center" style="padding:24px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;">
+        <tr>
+          <td style="padding:0 0 12px 0;" align="center">
+            <a href="${appUrl}" style="text-decoration:none;color:#111827;">
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:18px;">ScholarMarket</span>
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td class="card" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+              <tr>
+                <td style="padding:0;">
+                  <div style="background:#16a34a;padding:16px 24px;">
+                    <p style="margin:0;font-size:13px;font-weight:600;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:0.05em;text-transform:uppercase;">Account Restored</p>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px 24px 8px 24px;">
+                  <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.3;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    Your account has been reactivated
+                  </h1>
+                  <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    Hi ${escapeHtml(name)},
+                  </p>
+                  <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    Good news — your ScholarMarket account has been fully reinstated. You can now log in and access all features as normal.
+                  </p>
+                  <p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    Please review our community guidelines to ensure continued access:
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/terms" style="color:#2563eb;text-decoration:none;">${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/terms</a>.
+                  </p>
+                  <div style="margin:0 0 24px 0;">
+                    <a href="${dashboardUrl}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                      Go to your dashboard
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:16px 8px 0 8px;">
+            <p class="muted" style="margin:0 0 24px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              © ${new Date().getUTCFullYear()} ScholarMarket
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+function buildReactivationText({ name }) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  return [
+    `Hi ${name},`,
+    ``,
+    `Your ScholarMarket account has been fully reinstated.`,
+    `You can now log in and access all features as normal.`,
+    ``,
+    `Please review our guidelines to ensure continued access: ${appUrl}/terms`,
+    ``,
+    `ScholarMarket Team`,
+  ].join('\n')
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -42,6 +267,19 @@ export async function sendSuspensionEmail({ to, name, reason, appealEmail }) {
   const transporter = createTransporter()
   const { subject, text, html } = renderSuspensionEmail({ name, reason, appealEmail })
 
+  try {
+    await transporter.sendMail({
+      from,
+      to,
+      subject: 'Important: Your ScholarMarket account has been suspended',
+      text: buildSuspensionText({ name, reason, appealEmail }),
+      html: buildSuspensionHtml({ name, reason, appealEmail }),
+    })
+    return { sent: true }
+  } catch (err) {
+    console.error('[email:suspensionNotifier] Failed to send suspension email:', err)
+    return { sent: false, error: err instanceof Error ? err.message : String(err) }
+  }
   await transporter.sendMail({ from, to, subject, text, html })
 }
 
@@ -55,5 +293,18 @@ export async function sendReactivationEmail({ to, name }) {
   const transporter = createTransporter()
   const { subject, text, html } = renderReactivationEmail({ name })
 
+  try {
+    await transporter.sendMail({
+      from,
+      to,
+      subject: 'Good news: Your ScholarMarket account has been reactivated',
+      text: buildReactivationText({ name }),
+      html: buildReactivationHtml({ name }),
+    })
+    return { sent: true }
+  } catch (err) {
+    console.error('[email:suspensionNotifier] Failed to send reactivation email:', err)
+    return { sent: false, error: err instanceof Error ? err.message : String(err) }
+  }
   await transporter.sendMail({ from, to, subject, text, html })
 }

@@ -69,6 +69,21 @@ describe('apiClient success parsing (#144)', () => {
 });
 
 describe('apiClient error mapping (#144)', () => {
+  it('refreshes an expired session once and retries the original request', async () => {
+    let calls = 0;
+    server.use(
+      http.post('*/api/auth/refresh', () => HttpResponse.json({ success: true })),
+      http.get('*/api/retry-after-refresh', () => {
+        calls += 1;
+        return calls === 1
+          ? HttpResponse.json({ detail: 'expired' }, { status: 401 })
+          : HttpResponse.json({ ok: true });
+      }),
+    );
+    expect(await apiClient('/api/retry-after-refresh')).toEqual({ ok: true });
+    expect(calls).toBe(2);
+  });
+
   it('maps a problem+json response into a typed error', async () => {
     server.use(http.get('*/api/problem', () => HttpResponse.json({
       type: 'https://example.test/validation',
