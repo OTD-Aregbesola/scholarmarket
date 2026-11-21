@@ -24,8 +24,11 @@ export async function enqueueSideEffect({
   sourceId,
   intent,
   config = DEFAULT_CONFIG,
+  db: database,
+  session,
+  dedupeKey,
 }) {
-  const db = await getDb();
+  const db = database || await getDb();
   const now = new Date();
 
   const entry = {
@@ -44,7 +47,13 @@ export async function enqueueSideEffect({
     updatedAt: now,
   };
 
-  const result = await db.collection(OUTBOX_COLLECTION).insertOne(entry);
+  if (dedupeKey) {
+    await db.collection(OUTBOX_COLLECTION).updateOne(
+      { _id: dedupeKey }, { $setOnInsert: entry }, { upsert: true, session }
+    );
+    return { ...entry, _id: dedupeKey };
+  }
+  const result = await db.collection(OUTBOX_COLLECTION).insertOne(entry, { session });
   return { ...entry, _id: result.insertedId };
 }
 
@@ -73,6 +82,7 @@ export async function leaseNextIntent(workerId, config = DEFAULT_CONFIG) {
     {
       sort: { nextAttemptAt: 1, createdAt: 1 },
       returnDocument: 'after',
+      includeResultMetadata: true,
     }
   );
 
