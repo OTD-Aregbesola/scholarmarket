@@ -84,6 +84,10 @@ async function ensureIndexes(db) {
     const users = db.collection("users");
     const outbox = db.collection("side_effect_outbox");
     const auditLogs = db.collection("audit_logs");
+    const idempotencyKeys = db.collection("idempotency_keys");
+    const featureFlags = db.collection("feature_flags");
+
+    await featureFlags.createIndex({ key: 1 }, { name: "feature_flags_key_idx", unique: true, background: true });
 
     await materials.createIndex(
       { category: 1, price: 1 },
@@ -144,6 +148,15 @@ async function ensureIndexes(db) {
     await auditLogs.createIndex(
       { createdAt: -1 },
       { name: "audit_createdAt_idx", background: true },
+    );
+
+    await idempotencyKeys.createIndex(
+      { key: 1 },
+      { name: "idempotency_key_unique_idx", unique: true, background: true },
+    );
+    await idempotencyKeys.createIndex(
+      { createdAt: 1 },
+      { name: "idempotency_createdAt_ttl_idx", expireAfterSeconds: 86400, background: true },
     );
 
     console.log("MongoDB indexes ensured successfully.");

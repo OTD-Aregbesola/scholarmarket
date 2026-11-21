@@ -17,6 +17,7 @@ export default function SponsorCheckout() {
   const [addresses, setAddresses] = useState([]);
   const [valid, setValid] = useState(false);
   const [gasInfo, setGasInfo] = useState({ totalTx: 0, gasCost: 0 });
+  const [submitting, setSubmitting] = useState(false);
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
 
@@ -26,7 +27,7 @@ export default function SponsorCheckout() {
     setValid(allValid && list.length > 0);
     // Simple mock estimation: each address = 1 transaction, gas = 0.00001 XLM per tx
     const totalTx = list.length;
-    const gasCost = (totalTx * 0.00001).toFixed(5);
+    const gasCost = totalTx * 0.00001;
     setGasInfo({ totalTx, gasCost });
   };
 
@@ -39,11 +40,12 @@ export default function SponsorCheckout() {
       confirmLabel: 'Sponsor',
     });
     if (!confirmed) return;
-    toast.show({
-      title: 'Sponsorship submitted',
-      message: `Sponsoring ${addresses.length} students`,
-      type: 'success',
-    });
+    setSubmitting(true);
+    try {
+      toast.show({ title: 'Sponsorship submitted', message: `Sponsoring ${addresses.length} students`, type: 'success' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -53,7 +55,7 @@ export default function SponsorCheckout() {
       <form onSubmit={handleSubmit} className="checkout-form">
         <BulkAddressInput onChange={handleAddressesChange} />
         <GasEstimator totalTx={gasInfo.totalTx} gasCost={gasInfo.gasCost} />
-        <button type="submit" className="submit-btn" disabled={!valid}>
+        <button type="submit" className="submit-btn" disabled={!valid || submitting}>
           Confirm Sponsorship
         </button>
       </form>

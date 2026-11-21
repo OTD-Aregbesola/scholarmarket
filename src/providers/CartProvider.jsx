@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { purchaseService } from '@/services/purchaseService';
+import { generateIdempotencyKey, serializeAttemptPayload } from '@/lib/api/clientIdempotency';
 import { useWallet } from '@/hooks/useWallet';
 import { isMainnet } from '@/lib/config/chain';
 
@@ -13,6 +14,7 @@ export function CartProvider({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const toast = useToast();
   const { isConnected, address } = useWallet();
+  const checkoutAttemptRef = useRef(null);
 
   const addToCart = useCallback((material) => {
     const materialId = material._id || material.id;
@@ -56,6 +58,7 @@ export function CartProvider({ children }) {
   }, [toast]);
 
   const clearCart = useCallback(() => {
+    checkoutAttemptRef.current = null;
     setCartItems([]);
   }, []);
 
@@ -123,20 +126,48 @@ export function CartProvider({ children }) {
       });
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      const simulatedHash = 'simulated_cart_hash_' + Math.random().toString(36).substring(7);
+      const attemptSignature = serializeAttemptPayload({
+        buyerAddress: address,
+        email: email || undefined,
+        materialIds: cartItems.map((item) => item._id || item.id),
+      });
+
+      if (
+        !checkoutAttemptRef.current ||
+        checkoutAttemptRef.current.completed ||
+        checkoutAttemptRef.current.signature !== attemptSignature
+      ) {
+        const keysByMaterialId = new Map();
+        for (const item of cartItems) {
+          const materialId = item._id || item.id;
+          keysByMaterialId.set(materialId, generateIdempotencyKey());
+        }
+        checkoutAttemptRef.current = {
+          signature: attemptSignature,
+          simulatedHash: 'simulated_cart_hash_' + Math.random().toString(36).substring(7),
+          keysByMaterialId,
+          completed: false,
+        };
+      }
+
+      const { simulatedHash, keysByMaterialId } = checkoutAttemptRef.current;
 
       // Save each purchase to the database
       const purchasePromises = cartItems.map((item) => {
         const materialId = item._id || item.id;
-        return purchaseService.createPurchase({
-          buyerAddress: address,
-          materialId,
-          transactionHash: simulatedHash,
-          email: email || undefined,
-        });
+        return purchaseService.createPurchase(
+          {
+            buyerAddress: address,
+            materialId,
+            transactionHash: simulatedHash,
+            email: email || undefined,
+          },
+          { idempotencyKey: keysByMaterialId.get(materialId) },
+        );
       });
 
       await Promise.all(purchasePromises);
+      checkoutAttemptRef.current.completed = true;
 
       // Success
       toast.update(toastId, {

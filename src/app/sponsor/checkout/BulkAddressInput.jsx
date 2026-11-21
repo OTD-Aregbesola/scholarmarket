@@ -11,8 +11,8 @@ export default function BulkAddressInput({ onChange }) {
   const [manualInput, setManualInput] = useState('');
 
   const parseAddresses = (text) => {
-    const lines = text.split(/[\r\n,]+/).map(l => l.trim()).filter(l => l !== '');
-    onChange(lines);
+    const lines = [...new Set(text.split(/[\r\n,]+/).map(l => l.trim()).filter(Boolean))];
+    onChange(lines.slice(0, 500));
   };
 
   const handleFile = (e) => {

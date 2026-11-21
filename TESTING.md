@@ -20,16 +20,18 @@ ScholarMarket uses a multi-layered testing approach:
 - **Integration Tests**: MongoDB integration with mongodb-memory-server for real database testing
 - **API Mocking**: Mock Service Worker (MSW) for Pinata API and external services
 - **Visual Regression Tests**: Playwright for visual regression and end-to-end testing
+- **Backend Tests**: Node.js native test runner for backend integration tests
 
 ### Technology Stack
 
-| Layer | Tool | Purpose |
-|-------|------|---------|
-| Unit/Component | Vitest + React Testing Library | Fast test execution, component testing |
-| Database | mongodb-memory-server | In-memory MongoDB for integration tests |
-| API Mocking | Mock Service Worker (MSW) | Intercept and mock external API calls |
-| E2E/Visual | Playwright | End-to-end and visual regression testing |
-| Accessibility | jest-axe | Automated accessibility checking |
+| Layer | Tool | Config | Location |
+|-------|------|--------|----------|
+| Unit/Component | Vitest | `vitest.config.mjs` | `src/**/*.test.*`, `test/integration/**` |
+| Database | mongodb-memory-server | vitest config | Integration tests in `test/` |
+| API Mocking | Mock Service Worker (MSW) | vitest config | Shared across test suites |
+| Visual Regression | Playwright | `playwright.config.js` | `test/visual/` |
+| Backend (Node) | Node.js test runner | — | `tests/backend/` (run via `npm run test:backend`) |
+| Accessibility | jest-axe | vitest config | Integrated in component tests |
 
 ## Setup and Installation
 

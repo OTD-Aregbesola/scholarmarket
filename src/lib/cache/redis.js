@@ -84,3 +84,71 @@ export async function invalidateMarketplaceCache() {
   ]);
 }
 
+export async function acquireLeaderLock(lockKey, { ttlMs = 30000, renewalIntervalMs = 10000 } = {}) {
+  const redis = await getRedisClient();
+  if (!redis) return null;
+
+  const lockValue = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+  try {
+    const acquired = await redis.set(lockKey, lockValue, {
+      NX: true,
+      PX: ttlMs,
+    });
+
+    if (!acquired) {
+      return null;
+    }
+
+    console.log(`[Redis] Acquired leader lock: ${lockKey}`);
+
+    const renewalTimer = setInterval(async () => {
+      try {
+        const currentValue = await redis.get(lockKey);
+        if (currentValue === lockValue) {
+          await redis.pExpire(lockKey, ttlMs);
+        } else {
+          clearInterval(renewalTimer);
+          console.log(`[Redis] Lost leader lock: ${lockKey}`);
+        }
+      } catch (err) {
+        console.warn(`[Redis] Lock renewal failed: ${err.message}`);
+      }
+    }, renewalIntervalMs);
+
+    return {
+      lockValue,
+      releaseLock: async () => {
+        clearInterval(renewalTimer);
+        try {
+          const currentValue = await redis.get(lockKey);
+          if (currentValue === lockValue) {
+            await redis.del(lockKey);
+            console.log(`[Redis] Released leader lock: ${lockKey}`);
+          }
+        } catch (err) {
+          console.warn(`[Redis] Lock release failed: ${err.message}`);
+        }
+      },
+    };
+  } catch (err) {
+    console.warn(`[Redis] Failed to acquire lock ${lockKey}: ${err.message}`);
+    return null;
+  }
+}
+
+export async function releaseLeaderLock(lockKey, lockValue) {
+  const redis = await getRedisClient();
+  if (!redis) return;
+
+  try {
+    const currentValue = await redis.get(lockKey);
+    if (currentValue === lockValue) {
+      await redis.del(lockKey);
+      console.log(`[Redis] Released leader lock: ${lockKey}`);
+    }
+  } catch (err) {
+    console.warn(`[Redis] Failed to release lock ${lockKey}: ${err.message}`);
+  }
+}
+

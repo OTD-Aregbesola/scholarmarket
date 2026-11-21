@@ -5,6 +5,9 @@ import { useToast } from '@/hooks/useToast';
 
 export const ComparisonContext = createContext(null);
 
+/** Maximum number of materials that can be compared side-by-side. */
+export const MAX_COMPARE = 3;
+
 export function ComparisonProvider({ children }) {
   const [comparedItems, setComparedItems] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,11 +30,11 @@ export function ComparisonProvider({ children }) {
         return prev;
       }
 
-      // Enforce the strict maximum boundary of 3 materials
-      if (prev.length >= 3) {
+      // Enforce the strict maximum boundary of MAX_COMPARE materials
+      if (prev.length >= MAX_COMPARE) {
         toast.show({
           title: 'Comparison Limit Reached',
-          message: 'You can only contrast up to 3 resources side-by-side.',
+          message: `You can only contrast up to ${MAX_COMPARE} resources side-by-side.`,
           type: 'error',
           duration: 4000,
         });

@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaExchangeAlt, FaTrash, FaStar, FaFilePdf, FaFileWord, FaFilePowerpoint } from 'react-icons/fa';
+import { FaTimes, FaExchangeAlt, FaStar, FaFilePdf, FaFileWord, FaFilePowerpoint } from 'react-icons/fa';
 import Image from 'next/image';
 import { useComparison } from '@/hooks/useComparison';
 
@@ -11,12 +10,8 @@ export default function ComparisonMatrix() {
     comparedItems,
     isModalOpen,
     removeFromComparison,
-    clearComparison,
-    openComparisonModal,
     closeComparisonModal,
   } = useComparison();
-
-  const [isDrawerCollapsed, setIsDrawerCollapsed] = useState(false);
 
   if (comparedItems.length === 0) return null;
 
@@ -43,91 +38,6 @@ export default function ComparisonMatrix() {
 
   return (
     <>
-      {/* ────────────────── BOTTOM COMPARISON DRAWER ────────────────── */}
-      <AnimatePresence>
-        {!isModalOpen && (
-          <motion.div
-            initial={{ y: 150, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 150, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-md px-6 py-4"
-          >
-            <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center justify-between md:justify-start gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
-                    <FaExchangeAlt />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                      Contrast Educational Materials
-                    </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Compare price, format, and details ({comparedItems.length} / 3 selected)
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsDrawerCollapsed(!isDrawerCollapsed)}
-                  className="md:hidden text-xs text-blue-500 font-semibold hover:underline"
-                >
-                  {isDrawerCollapsed ? 'Show Items' : 'Hide Items'}
-                </button>
-              </div>
-
-              {!isDrawerCollapsed && (
-                <div className="flex flex-wrap items-center gap-3">
-                  {comparedItems.map((item) => {
-                    const itemId = item._id || item.id;
-                    return (
-                      <div
-                        key={itemId}
-                        className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 pl-2 pr-1.5 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[180px] shrink-0 relative group"
-                      >
-                        <div className="relative w-6 h-6 rounded overflow-hidden bg-slate-100">
-                          <Image
-                            src={item.image || item.thumbnailUrl || '/images/image1.jpg'}
-                            alt={item.title}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <span className="truncate flex-1 pr-4">{item.title}</span>
-                        <button
-                          onClick={() => removeFromComparison(itemId)}
-                          className="text-slate-400 hover:text-rose-500 p-0.5"
-                          aria-label="Remove item"
-                        >
-                          <FaTimes className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-3 shrink-0">
-                <button
-                  onClick={clearComparison}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  <FaTrash className="w-3 h-3" />
-                  Clear
-                </button>
-                <button
-                  onClick={openComparisonModal}
-                  className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
-                >
-                  <FaExchangeAlt />
-                  Compare Now
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* ────────────────── SIDE-BY-SIDE MATRIX MODAL OVERLAY ────────────────── */}
       <AnimatePresence>
         {isModalOpen && (

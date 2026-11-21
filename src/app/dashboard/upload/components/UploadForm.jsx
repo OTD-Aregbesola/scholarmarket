@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import dynamic from "next/dynamic";
 import { FaCloudUploadAlt } from "react-icons/fa";
-import Cropper from "react-easy-crop";
 import { useWallet } from "@/hooks/useWallet";
+
+const Cropper = dynamic(() => import("react-easy-crop"), { ssr: false, loading: () => <div className="h-56 bg-gray-100 animate-pulse rounded-md" /> });
 import { WalletStatus } from "@/providers/WalletProvider";
 import { useUploadFile, useCreateMaterial } from "@/hooks/api/useMaterials";
 import { getCroppedImageBlob } from "./cropImage";

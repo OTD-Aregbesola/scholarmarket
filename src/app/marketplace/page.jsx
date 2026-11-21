@@ -32,6 +32,8 @@ import MaterialCardSkeleton from "@/components/materials/MaterialCardSkeleton";
 import RecentlyViewedMaterials from "@/components/materials/RecentlyViewedMaterials";
 import ResourceStatusBadge from "@/components/materials/ResourceStatusBadge";
 import { useMarketplaceMaterials } from "@/hooks/api/useMaterials";
+import { usePrefetchMaterial } from "@/hooks/api/usePrefetchMaterial";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { useCart } from "@/hooks/useCart";
 import { useComparison } from "@/hooks/useComparison";
 import { useUrlState } from "@/hooks/useUrlState";
@@ -138,6 +140,9 @@ export default function MarketPage() {
   const [subjects, setSubjects] = useState(["All"]);
   const [categories, setCategories] = useState([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
+
+  const itemsPerPage = 12;
+  const { prefetchOnHover, prefetchOnVisible } = usePrefetchMaterial();
 
   useEffect(() => {
     setSearchQuery(searchParams.get("search") || "");
@@ -616,12 +621,27 @@ export default function MarketPage() {
                   const isAlreadyInComp = comparedItems.some((item) => (item._id || item.id) === materialId);
                   const creatorAddress = material.userAddress || material.ownerAddress || "default";
 
+                  // Material card for prefetch behavior
+                  const MaterialCardWithPrefetch = ({ children }) => {
+                    const cardRef = useIntersectionObserver(() => {
+                      prefetchOnVisible(materialId);
+                    });
+
+                    return (
+                      <article
+                        ref={cardRef}
+                        key={materialId}
+                        role="listitem"
+                        className="relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300 flex flex-col group"
+                        onMouseEnter={() => prefetchOnHover(materialId)}
+                      >
+                        {children}
+                      </article>
+                    );
+                  };
+
                   return (
-                    <article
-                      key={materialId}
-                      role="listitem"
-                      className="relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300 flex flex-col group"
-                    >
+                    <MaterialCardWithPrefetch key={materialId}>
                       <SaveMaterialButton material={material} />
 
                       <Link href={`/marketplace/${materialId}`} className="relative w-full h-36 bg-gray-100 overflow-hidden block">
@@ -713,7 +733,7 @@ export default function MarketPage() {
                           </div>
                         </div>
                       </div>
-                    </article>
+                    </MaterialCardWithPrefetch>
                   );
                 })}
               </motion.div>

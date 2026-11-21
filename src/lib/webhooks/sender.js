@@ -71,6 +71,10 @@ export async function sendWebhookWithRetry(url, payload, retries = 3) {
         return true;
       } else {
         logger.warn(`Webhook failed (Attempt ${attempt}/${retries}): ${response.status} ${response.statusText}`);
+        const retryable = response.status >= 500 || response.status === 408 || response.status === 429;
+        if (!retryable) {
+          return false;
+        }
       }
     } catch (error) {
       if (error.name === 'AbortError') {

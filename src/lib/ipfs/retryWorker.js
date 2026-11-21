@@ -3,15 +3,63 @@ import { pinata } from '@/lib/pinata';
 import { auditLog } from '@/lib/api/audit';
 import { normalizeStringList, sanitizeObject } from '@/lib/api/validation';
 
-export async function processPendingPins() {
+/**
+ * Retry schedule for failed pins (exponential backoff).
+ *
+ * - Up to MAX_PIN_ATTEMPTS = 5 attempts in total.
+ * - After failed attempt n the job waits RETRY_BASE_DELAY_MS * 2^(n - 1):
+ *   1 min, 2 min, 4 min, 8 min.
+ * - The 5th failed attempt is terminal: status becomes 'failed' and the job
+ *   is never picked up again.
+ * - A job is claimed by setting status 'processing' and lockedAt. If the worker
+ *   stops before it records a result, the job is picked up again once the lock
+ *   is older than STALE_LOCK_MS (15 min). This does not count as an attempt.
+ */
+export const MAX_PIN_ATTEMPTS = 5;
+export const RETRY_BASE_DELAY_MS = 60_000;
+export const STALE_LOCK_MS = 15 * 60_000;
+
+export function getRetryDelayMs(attempt) {
+  return RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+}
+
+/**
+ * @param {{ db?: import('mongodb').Db }} [options] optional db override (used by tests)
+ */
+export async function processPendingPins({ db: injectedDb } = {}) {
   try {
-    const db = await getDb();
+    const db = injectedDb || await getDb();
     const pendingCollection = db.collection('pending_pins');
+    const now = new Date();
     
-    // Find up to 10 pending pins
-    const pendingItems = await pendingCollection.find({ status: 'pending' }).limit(10).toArray();
+    const staleBefore = new Date(now.getTime() - STALE_LOCK_MS);
+
+    // Find up to 10 pins that are due for an attempt, or whose claim has gone stale
+    const pendingItems = await pendingCollection
+      .find({
+        $or: [
+          { status: 'pending', nextAttemptAt: { $exists: false } },
+          { status: 'pending', nextAttemptAt: { $lte: now } },
+          { status: 'processing', lockedAt: { $lte: staleBefore } },
+        ],
+      })
+      .limit(10)
+      .toArray();
     
-    for (const item of pendingItems) {
+    for (const listed of pendingItems) {
+      // Claim the job atomically so concurrent workers skip it. A stale claim is
+      // matched on its old lockedAt, so only one worker can take it over.
+      const claimFilter = listed.status === 'processing'
+        ? { _id: listed._id, status: 'processing', lockedAt: listed.lockedAt }
+        : { _id: listed._id, status: 'pending' };
+      const claimed = await pendingCollection.findOneAndUpdate(
+        claimFilter,
+        { $set: { status: 'processing', lockedAt: new Date() } },
+      );
+      // mongodb v6+ returns the document; older drivers return { value }
+      const item = claimed && 'value' in claimed && !('_id' in claimed) ? claimed.value : claimed;
+      if (!item) continue;
+
       try {
         const results = {};
 
@@ -126,6 +174,33 @@ export async function processPendingPins() {
 
       } catch (err) {
         console.error(`Failed to process pending pin ${item._id}`, err);
+        const attempts = (item.attempts || 0) + 1;
+        const failedAt = new Date();
+        if (attempts >= MAX_PIN_ATTEMPTS) {
+          await pendingCollection.updateOne(
+            { _id: item._id },
+            { $set: { status: 'failed', attempts, failedAt, lastError: err.message } }
+          );
+          auditLog({
+            event: 'retry_upload_gave_up',
+            route: 'worker',
+            method: 'CRON',
+            status: 500,
+            reason: `Gave up on pending pin ${item._id} after ${attempts} attempts`,
+          });
+        } else {
+          await pendingCollection.updateOne(
+            { _id: item._id },
+            {
+              $set: {
+                status: 'pending',
+                attempts,
+                lastError: err.message,
+                nextAttemptAt: new Date(failedAt.getTime() + getRetryDelayMs(attempts)),
+              },
+            }
+          );
+        }
         auditLog({
           event: 'retry_upload_failed',
           route: 'worker',

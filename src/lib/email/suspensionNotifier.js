@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { renderSuspensionEmail, renderReactivationEmail } from './templates/suspension.js'
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -264,6 +265,7 @@ function buildReactivationText({ name }) {
 export async function sendSuspensionEmail({ to, name, reason, appealEmail }) {
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@scholarmarket.local'
   const transporter = createTransporter()
+  const { subject, text, html } = renderSuspensionEmail({ name, reason, appealEmail })
 
   try {
     await transporter.sendMail({
@@ -278,6 +280,7 @@ export async function sendSuspensionEmail({ to, name, reason, appealEmail }) {
     console.error('[email:suspensionNotifier] Failed to send suspension email:', err)
     return { sent: false, error: err instanceof Error ? err.message : String(err) }
   }
+  await transporter.sendMail({ from, to, subject, text, html })
 }
 
 /**
@@ -288,6 +291,7 @@ export async function sendSuspensionEmail({ to, name, reason, appealEmail }) {
 export async function sendReactivationEmail({ to, name }) {
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@scholarmarket.local'
   const transporter = createTransporter()
+  const { subject, text, html } = renderReactivationEmail({ name })
 
   try {
     await transporter.sendMail({
@@ -302,4 +306,5 @@ export async function sendReactivationEmail({ to, name }) {
     console.error('[email:suspensionNotifier] Failed to send reactivation email:', err)
     return { sent: false, error: err instanceof Error ? err.message : String(err) }
   }
+  await transporter.sendMail({ from, to, subject, text, html })
 }

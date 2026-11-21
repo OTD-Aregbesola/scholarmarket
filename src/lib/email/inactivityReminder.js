@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { renderInactivityReminderEmail } from "./templates/inactivityReminder.js";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -193,4 +194,12 @@ export async function sendInactivityReminder(to, name, inactiveDays, stats) {
     console.error("[email:inactivityReminder] Failed to send inactivity reminder:", err);
     return { sent: false, error: err instanceof Error ? err.message : String(err) };
   }
+  const { subject, text, html, headers } = renderInactivityReminderEmail({
+    to,
+    name,
+    inactiveDays,
+    stats,
+  });
+
+  await transporter.sendMail({ from, to, subject, text, html, headers });
 }
