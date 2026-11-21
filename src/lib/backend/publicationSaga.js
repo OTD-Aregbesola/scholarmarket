@@ -92,9 +92,7 @@ export async function transitionSagaState(sagaId, currentState, proof = {}) {
         updatedAt: new Date(),
         lastError: null,
         retries: 0,
-      },
-      $set: {
-        [`stepProofs.${currentState}`]: {
+        [`stepProofs.${nextState}`]: {
           timestamp: new Date(),
           proof,
         },
@@ -155,12 +153,15 @@ export async function compensateSaga(saga) {
     timestamp: new Date(),
   };
 
-  // If pinned on IPFS, unpin it
-  if (saga.stepProofs?.[PUBLICATION_STATES.IPFS_PINNED]?.proof?.cid) {
+  // Compensate in reverse order of execution:
+  // CHAIN_FINALIZED -> SOROBAN_REGISTERED -> IPFS_PINNED
+
+  // If finalized on chain, mark as draft
+  if (saga.stepProofs?.[PUBLICATION_STATES.CHAIN_FINALIZED]?.proof?.txHash) {
     compensation.rollbacks.push({
-      step: PUBLICATION_STATES.IPFS_PINNED,
-      action: "unpin_ipfs",
-      cid: saga.stepProofs[PUBLICATION_STATES.IPFS_PINNED].proof.cid,
+      step: PUBLICATION_STATES.CHAIN_FINALIZED,
+      action: "mark_draft",
+      txHash: saga.stepProofs[PUBLICATION_STATES.CHAIN_FINALIZED].proof.txHash,
     });
   }
 
@@ -173,12 +174,12 @@ export async function compensateSaga(saga) {
     });
   }
 
-  // If finalized on chain, mark as draft
-  if (saga.stepProofs?.[PUBLICATION_STATES.CHAIN_FINALIZED]?.proof?.txHash) {
+  // If pinned on IPFS, unpin it
+  if (saga.stepProofs?.[PUBLICATION_STATES.IPFS_PINNED]?.proof?.cid) {
     compensation.rollbacks.push({
-      step: PUBLICATION_STATES.CHAIN_FINALIZED,
-      action: "mark_draft",
-      txHash: saga.stepProofs[PUBLICATION_STATES.CHAIN_FINALIZED].proof.txHash,
+      step: PUBLICATION_STATES.IPFS_PINNED,
+      action: "unpin_ipfs",
+      cid: saga.stepProofs[PUBLICATION_STATES.IPFS_PINNED].proof.cid,
     });
   }
 

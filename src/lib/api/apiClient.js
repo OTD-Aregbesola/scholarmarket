@@ -59,6 +59,7 @@ function waitForReauthentication() {
  */
 export async function apiClient(endpoint, {
   body,
+  idempotencyKey,
   retries = 0,
   retryDelayMs = 100,
   ...customConfig
@@ -68,6 +69,10 @@ export async function apiClient(endpoint, {
   const csrfToken = getCsrfTokenFromCookie();
   if (csrfToken) {
     headers['x-csrf-token'] = csrfToken;
+  }
+
+  if (idempotencyKey && !customConfig.headers?.['Idempotency-Key'] && !customConfig.headers?.['idempotency-key']) {
+    headers['Idempotency-Key'] = idempotencyKey;
   }
 
   const config = {

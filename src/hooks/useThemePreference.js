@@ -16,12 +16,28 @@ function getSystemTheme() {
 		: LIGHT;
 }
 
+function readStoredTheme() {
+	try {
+		return window.localStorage.getItem(STORAGE_KEY);
+	} catch {
+		return null;
+	}
+}
+
+function persistTheme(theme) {
+	try {
+		window.localStorage.setItem(STORAGE_KEY, theme);
+	} catch {
+		// Storage may be unavailable (private mode or quota); keep theme in memory.
+	}
+}
+
 function getInitialTheme() {
 	if (typeof window === "undefined") {
 		return LIGHT;
 	}
 
-	const storedTheme = window.localStorage.getItem(STORAGE_KEY);
+	const storedTheme = readStoredTheme();
 	if (storedTheme === LIGHT || storedTheme === DARK) {
 		return storedTheme;
 	}
@@ -55,7 +71,7 @@ export function useThemePreference() {
 
 	const toggleTheme = () => {
 		const nextTheme = theme === DARK ? LIGHT : DARK;
-		window.localStorage.setItem(STORAGE_KEY, nextTheme);
+		persistTheme(nextTheme);
 		setTheme(nextTheme);
 	};
 

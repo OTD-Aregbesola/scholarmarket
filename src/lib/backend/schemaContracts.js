@@ -10,6 +10,10 @@ export const COLLECTIONS = {
   deadLetterEvents: "dead_letter_events",
   materialHistory: "material_history",
   savedMaterials: "saved_materials",
+  disputes: "disputes",
+  sideEffectOutbox: "side_effect_outbox",
+  auditLogs: "audit_logs",
+  idempotencyKeys: "idempotency_keys",
 };
 
 export const REQUIRED_INDEXES = {
@@ -24,6 +28,7 @@ export const REQUIRED_INDEXES = {
   materials: [
     { keys: { deletedAt: 1 }, options: { name: "materials_deletedAt_idx" } },
     { keys: { userAddress: 1, createdAt: -1 } },
+    { keys: { userAddress: 1, createdAt: -1, _id: -1 } },
     { keys: { visibility: 1, createdAt: -1 } },
     { keys: { materialId: 1 }, options: { sparse: true } },
     { keys: { tokenId: 1 }, options: { unique: true, sparse: true } },
@@ -48,6 +53,7 @@ export const REQUIRED_INDEXES = {
   ],
   purchases: [
     { keys: { buyerAddress: 1, createdAt: -1 } },
+    { keys: { buyerAddress: 1, purchasedAt: -1, createdAt: -1, _id: -1 } },
     { keys: { materialId: 1, buyerAddress: 1 }, options: { unique: true, sparse: true } },
     { keys: { chainTxHash: 1 }, options: { unique: true, sparse: true } },
   ],
@@ -76,6 +82,36 @@ export const REQUIRED_INDEXES = {
   saved_materials: [
     { keys: { walletAddress: 1, savedAt: -1 } },
     { keys: { walletAddress: 1, materialId: 1 }, options: { unique: true } },
+  ],
+  disputes: [{ keys: { createdAt: -1, _id: -1 } }],
+  side_effect_outbox: [
+    {
+      keys: { status: 1, nextAttemptAt: 1, createdAt: 1 },
+      options: { name: "outbox_poll_idx", background: true },
+    },
+    {
+      keys: { deliveryId: 1 },
+      options: { name: "outbox_delivery_id_idx", unique: true, background: true },
+    },
+    {
+      keys: { sourceAggregate: 1, sourceId: 1 },
+      options: { name: "outbox_source_idx", background: true },
+    },
+    {
+      keys: { status: 1, leaseExpiresAt: 1 },
+      options: { name: "outbox_lease_idx", background: true, sparse: true },
+    },
+  ],
+  audit_logs: [
+    { keys: { actor: 1 }, options: { name: "audit_actor_idx", background: true } },
+    { keys: { action: 1 }, options: { name: "audit_action_idx", background: true } },
+    {
+      keys: { createdAt: -1 },
+      options: { name: "audit_createdAt_idx", background: true },
+    },
+  idempotency_keys: [
+    { keys: { key: 1 }, options: { unique: true, name: "idempotency_key_unique_idx" } },
+    { keys: { createdAt: 1 }, options: { expireAfterSeconds: 86400, name: "idempotency_createdAt_ttl_idx" } },
   ],
 };
 

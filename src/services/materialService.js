@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/apiClient';
+import { cursorQuery } from '@/lib/pagination/query';
 
 export const materialService = {
   getMarketplaceMaterials: async (params = {}) => {
@@ -18,8 +19,8 @@ export const materialService = {
     return apiClient(`/api/materials/${id}/feedback`);
   },
 
-  getUserMaterials: async () => {
-    return apiClient('/api/materials');
+  getUserMaterials: async (cursor, limit) => {
+    return apiClient(`/api/materials${cursorQuery(cursor, limit)}`);
   },
 
   createMaterial: async (materialData) => {

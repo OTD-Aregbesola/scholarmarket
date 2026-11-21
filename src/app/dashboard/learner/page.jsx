@@ -19,6 +19,7 @@ import {
 import { useMarketplaceMaterials } from "@/hooks/api/useMaterials";
 import { useSavedMaterials } from "@/hooks/api/useSavedMaterials";
 import { usePurchaseHistory } from "@/hooks/api/usePurchases";
+import { flattenInfiniteData } from "@/components/common/QueryStateProvider";
 
 function getPreviewImage(material) {
   return (
@@ -39,7 +40,7 @@ export default function LearnerDashboardPage() {
 
   const recentMaterials = marketData?.items || [];
   const savedMaterials = savedItems || [];
-  const purchases = purchaseData?.purchases || purchaseData || [];
+  const purchases = flattenInfiniteData(purchaseData) || [];
 
   const notifications = [
     { id: 1, text: "New materials added in Science this week", time: "2h ago", type: "new" },

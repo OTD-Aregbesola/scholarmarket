@@ -9,6 +9,7 @@ import { auditLog } from "@/lib/api/audit";
 import { verifyEntitlement } from "@/lib/entitlement";
 import { getIpfsUrl } from "@/lib/config/chain";
 import { normalizeBuyerAddress } from "@/lib/purchases/access";
+import { resolveRevisionCid, withRevisionHistory } from "@/lib/materials/revisions";
 
 export async function GET(req, { params }) {
   return withApiHardening(
@@ -91,7 +92,9 @@ export async function GET(req, { params }) {
       }
 
       // ── 5. Resolve file reference ──────────────────────────────────────
-      const cid = material.ipfsCid ?? material.cid ?? material.fileHash ?? material.storageKey ?? material.fileUrl ?? "";
+      const revisionSelector = new URL(req.url).searchParams.get("revision") || undefined;
+      const resolved = resolveRevisionCid(material, revisionSelector);
+      const cid = resolved?.cid || "";
       if (!cid) {
         auditLog({
           event: "deliver_no_file",
@@ -101,7 +104,10 @@ export async function GET(req, { params }) {
           actor: user.sub,
           materialId: id,
         });
-        return NextResponse.json({ error: "Material has no associated file" }, { status: 404 });
+        return NextResponse.json(
+          { error: revisionSelector ? "Revision not found" : "Material has no associated file" },
+          { status: 404 },
+        );
       }
 
       const fileUrl = getIpfsUrl(cid);
@@ -124,6 +130,8 @@ export async function GET(req, { params }) {
           fileName: material.fileName ?? material.title ?? id,
           contentType: material.contentType ?? "application/octet-stream",
           source: accessSource,
+          revision: resolved.revision,
+          revisions: withRevisionHistory(material).revisions,
         },
         {
           headers: {

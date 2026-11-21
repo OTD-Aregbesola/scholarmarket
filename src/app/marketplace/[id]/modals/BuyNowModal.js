@@ -113,6 +113,8 @@ export default function BuyNowModal({
     setCheckoutError(null);
     setDownloadError(null);
     setIsDownloading(false);
+    createPurchaseMutation.reset();
+    startAccessRequestMutation.reset();
     clearTransaction();
   };
 

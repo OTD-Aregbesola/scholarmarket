@@ -1,6 +1,10 @@
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { purchaseService } from '@/services/purchaseService';
+import { createIdempotencyAttemptManager } from '@/lib/api/clientIdempotency';
 import { queryKeys } from '@/lib/query/queryKeys';
+import { nextCursorParam } from '@/lib/pagination/query';
 
 /**
  * Fetches the authenticated user's purchase history.
@@ -8,9 +12,11 @@ import { queryKeys } from '@/lib/query/queryKeys';
  * @returns {object} A react-query result containing an array of past purchases.
  */
 export function usePurchaseHistory() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.purchases.history(),
-    queryFn: () => purchaseService.getPurchaseHistory(),
+    queryFn: ({ pageParam }) => purchaseService.getPurchaseHistory(pageParam),
+    initialPageParam: null,
+    getNextPageParam: nextCursorParam,
   });
 }
 
@@ -21,9 +27,11 @@ export function usePurchaseHistory() {
  * @returns {object} A react-query result containing an array of purchased materials.
  */
 export function usePurchasedMaterials() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.purchases.library(),
-    queryFn: () => purchaseService.getPurchasedMaterials(),
+    queryFn: ({ pageParam }) => purchaseService.getPurchasedMaterials(pageParam),
+    initialPageParam: null,
+    getNextPageParam: nextCursorParam,
     staleTime: 60 * 1000,
   });
 }
@@ -44,17 +52,58 @@ export function useCheckEntitlement(materialId, address) {
 }
 
 /**
+ * Mutation hook that initiates a checkout intent with tax estimation.
+ *
+ * Generates a stable `Idempotency-Key` per attempt, reuses it across retries
+ * of the same payload, and rotates on new attempts or payload changes.
+ *
+ * @returns {object} A react-query mutation object. Call `mutate(checkoutData)` to initiate checkout.
+ */
+export function useInitiateCheckout() {
+  const [attemptManager] = useState(() => createIdempotencyAttemptManager());
+
+  const mutation = useMutation({
+    mutationFn: async (checkoutData) => {
+      const idempotencyKey = attemptManager.getKeyForPayload(checkoutData);
+      const result = await purchaseService.initiateCheckout(checkoutData, { idempotencyKey });
+      attemptManager.markSucceeded();
+      return result;
+    },
+  });
+
+  const { reset: resetMutation } = mutation;
+  const reset = useCallback(() => {
+    attemptManager.reset();
+    resetMutation();
+  }, [attemptManager, resetMutation]);
+
+  return {
+    ...mutation,
+    reset,
+    getIdempotencyKey: () => attemptManager.getCurrentKey(),
+  };
+}
+
+/**
  * Mutation hook that records a new material purchase.
  *
+ * Generates a stable `Idempotency-Key` per attempt, reuses it across retries
+ * of the same payload, and rotates on new attempts or payload changes.
  * Invalidates the purchase history and relevant entitlement caches on success.
  *
  * @returns {object} A react-query mutation object. Call `mutate(purchaseData)` to record a purchase.
  */
 export function useCreatePurchase() {
   const queryClient = useQueryClient();
+  const [attemptManager] = useState(() => createIdempotencyAttemptManager());
 
-  return useMutation({
-    mutationFn: purchaseService.createPurchase,
+  const mutation = useMutation({
+    mutationFn: async (purchaseData) => {
+      const idempotencyKey = attemptManager.getKeyForPayload(purchaseData);
+      const result = await purchaseService.createPurchase(purchaseData, { idempotencyKey });
+      attemptManager.markSucceeded();
+      return result;
+    },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.purchases.all });
       // Invalidate specific entitlement check if materialId is known
@@ -69,6 +118,18 @@ export function useCreatePurchase() {
       }
     },
   });
+
+  const { reset: resetMutation } = mutation;
+  const reset = useCallback(() => {
+    attemptManager.reset();
+    resetMutation();
+  }, [attemptManager, resetMutation]);
+
+  return {
+    ...mutation,
+    reset,
+    getIdempotencyKey: () => attemptManager.getCurrentKey(),
+  };
 }
 
 /**

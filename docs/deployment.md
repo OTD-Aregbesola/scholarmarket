@@ -17,6 +17,7 @@ Step-by-step instructions for taking ScholarMarket from development to a product
 9. [Database Backup and Recovery](#9-database-backup-and-recovery)
 10. [Monitoring and Error Tracking](#10-monitoring-and-error-tracking)
 11. [Rollback Procedure](#11-rollback-procedure)
+12. [Database Migrations](#12-database-migrations)
 
 ---
 
@@ -153,6 +154,28 @@ Set these in **Repository Settings → Secrets and variables → Actions**:
 |---|---|
 | `SENTRY_DSN` | Sentry DSN for server-side error tracking (omit to disable) |
 | `NEXT_PUBLIC_SENTRY_DSN` | Same DSN exposed to the browser bundle |
+
+### Health probes
+
+Three endpoints are available for orchestrators:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/health/live` | Liveness. Returns 200 while the Node process is running. It calls no dependencies. |
+| `GET /api/health/ready` | Readiness. Returns 200 only when MongoDB, Redis, Pinata, email, Stellar and the indexer pass. Otherwise 503. |
+| `GET /api/health` | Backward-compatible aggregate. Keeps the original `services` string map and adds `indexerLag` and `checks`. |
+
+Readiness fails when Redis is configured but unreachable, and when indexer lag exceeds the configured threshold. When `REDIS_URL` is unset, Redis is reported as `not_configured` and does not fail readiness because the cache is optional.
+
+Tuning variables, all optional:
+
+| Variable | Default | Description |
+|---|---|---|
+| `HEALTH_CHECK_TIMEOUT_MS` | `2000` | Timeout applied to each dependency check |
+| `HEALTH_RPC_CACHE_TTL_MS` | `5000` | TTL for the shared RPC health response used by Stellar and lag checks |
+| `INDEXER_LAG_THRESHOLD` | `50` | Ledgers of lag allowed before readiness fails. Set to `0` to disable the threshold. |
+
+The readiness payload reports `indexerLag` with `lag`, `latestLedger`, `lastIndexedLedger` and `threshold`.
 
 ---
 
@@ -692,3 +715,73 @@ Because contracts are migration-driven, existing entitlements on the previous de
 ### Database rollback
 
 Restore from the most recent backup using the procedure in Section 9. Coordinate with a frontend rollback if the schema change is breaking.
+
+---
+
+## 12. Database Migrations
+
+MongoDB schema validators, indexes, and one-time data backfills are managed by the versioned migration runner. They are **not** created automatically when the application boots, so `npm run migrate` is a required step for every fresh deployment before the new code starts serving traffic.
+
+### Commands
+
+```bash
+# Apply every pending migration, in filename order
+npm run migrate
+
+# Show which migrations are applied and which are pending
+npm run migrate:status
+
+# Revert the most recently applied migration
+node scripts/migrate.mjs --down
+
+# Revert one specific migration
+node scripts/migrate.mjs --down 20261120000100-indexes.mjs
+```
+
+The runner needs `MONGODB_URI` (and optionally `MONGODB_DB`, which defaults to `scholarmarket`). Applied migration names are recorded in the `_migrations` collection. Running `npm run migrate` again after a successful run is a no-op: already applied migrations are skipped.
+
+### Migration files
+
+Migrations live in `migrations/` and follow the `<14-digit timestamp>-<name>.mjs` convention. Each module exports `up(db)` and `down(db)`:
+
+```js
+export async function up(db) {
+  await db.collection("example").createIndex({ createdAt: -1 });
+}
+
+export async function down(db) {
+  await db.collection("example").dropIndex({ createdAt: -1 });
+}
+```
+
+The bundled migrations are:
+
+| Migration | Purpose |
+|---|---|
+| `20261120000000-schema-validators` | Applies `$jsonSchema` validators to `materials` and `users` with `validationLevel: moderate`. |
+| `20261120000100-indexes` | Creates all application indexes, including the TTL indexes, from the shared contracts. |
+| `20261120000200-assign-uuids` | Backfills `uuid` on legacy user documents. `down` is a no-op because assigned UUIDs may be referenced externally. |
+| `20261120000300-ttl-backfill` | Backfills `expiresAt` on active auth challenges and checkout intents that predate the TTL indexes. |
+
+### TTL indexes and cleanup
+
+`auth_challenges` and `checkout_intents` carry an `expiresAt` field. MongoDB's TTL monitor removes expired documents automatically, so no external cron job is required. The checkout intents index is partial and only covers `initiated` and `pending` intents, so completed purchases are never removed.
+
+`scripts/clean-stale-intents.mjs` is now a reporting and dry-run tool. It prints stale active intents but does not delete anything unless `--force-delete` is explicitly passed. Keep it out of cron.
+
+### Verifying validators manually
+
+Automated tests assert the migration and index configuration, but validator rejection is enforced by the MongoDB server. To verify against a real database after migration:
+
+```bash
+mongosh "$MONGODB_URI/scholarmarket" --eval '
+  try {
+    db.getCollection("materials").insertOne({ title: 123, price: "not a number" });
+    print("UNEXPECTED: invalid material was accepted");
+  } catch (error) {
+    print("EXPECTED: invalid material rejected:", error.message);
+  }
+'
+```
+
+The insert must be rejected. If it is accepted, the validator migration did not run or `validationAction` was changed.

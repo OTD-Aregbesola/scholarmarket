@@ -11,24 +11,12 @@ import {
 } from '@/lib/api/validation'
 import { pinata } from '@/lib/pinata'
 import { validateUploadedFile } from '@/lib/ipfs/uploadValidator'
-
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
-const MAX_THUMBNAIL_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
-
-const ALLOWED_FILE_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain',
-  'application/zip',
-  'application/x-zip-compressed',
-]
-
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+import {
+  ALLOWED_FILE_TYPES,
+  ALLOWED_IMAGE_TYPES,
+  MAX_FILE_SIZE_BYTES,
+  MAX_THUMBNAIL_SIZE_BYTES,
+} from '@/lib/materials/uploadValidation'
 
 import { getDb } from '@/lib/mongodb';
 import { createQuarantineRecord, QUARANTINE_STATES } from '@/lib/publishing/quarantine';

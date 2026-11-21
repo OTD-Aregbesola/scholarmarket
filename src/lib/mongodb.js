@@ -1,7 +1,6 @@
 // Resolves: Configure efficient MongoDB connection pooling in the Next.js API routes to handle concurrent requests.
 import { cpus } from "node:os";
 import { MongoClient } from "mongodb";
-import { REQUIRED_INDEXES } from "./backend/schemaContracts.js";
 
 const uri = process.env.MONGODB_URI;
 
@@ -87,6 +86,7 @@ async function ensureIndexes(db) {
     const users = db.collection("users");
     const outbox = db.collection("side_effect_outbox");
     const auditLogs = db.collection("audit_logs");
+    const idempotencyKeys = db.collection("idempotency_keys");
     const featureFlags = db.collection("feature_flags");
 
     await featureFlags.createIndex({ key: 1 }, { name: "feature_flags_key_idx", unique: true, background: true });
@@ -154,6 +154,15 @@ async function ensureIndexes(db) {
       { name: "audit_createdAt_idx", background: true },
     );
 
+    await idempotencyKeys.createIndex(
+      { key: 1 },
+      { name: "idempotency_key_unique_idx", unique: true, background: true },
+    );
+    await idempotencyKeys.createIndex(
+      { createdAt: 1 },
+      { name: "idempotency_createdAt_ttl_idx", expireAfterSeconds: 86400, background: true },
+    );
+
     console.log("MongoDB indexes ensured successfully.");
   } catch (error) {
     console.error(
@@ -170,13 +179,6 @@ export async function getDb() {
     // Otherwise, fallback to "scholarmarket".
     const dbName = process.env.MONGODB_DB || "scholarmarket";
     const db = client.db(dbName);
-
-    if (!indexesCreated) {
-      indexesCreated = true;
-      ensureIndexes(db).catch((err) =>
-        console.error("[Database Index Async Error]:", err),
-      );
-    }
 
     return db;
   } catch (error) {

@@ -1,6 +1,7 @@
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { materialService } from '@/services/materialService';
 import { queryKeys } from '@/lib/query/queryKeys';
+import { nextCursorParam } from '@/lib/pagination/query';
 
 /**
  * Fetches paginated marketplace materials with optional filtering parameters.
@@ -47,6 +48,24 @@ export function useMaterialDetail(id) {
 }
 
 /**
+ * Fetches revision history for a specific material by its ID.
+ *
+ * @param {string} id - The material ID whose revision history to fetch.
+ * @returns {object} A react-query result containing an array of revision history entries.
+ */
+export function useMaterialHistory(id) {
+  return useQuery({
+    queryKey: ['materials', 'history', id],
+    queryFn: async () => {
+      const res = await fetch(`/api/materials/history?id=${id}`);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!id,
+  });
+}
+
+/**
  * Fetches feedback and reviews for a specific material.
  *
  * @param {string} id - The material ID whose feedback to fetch.
@@ -66,9 +85,11 @@ export function useMaterialFeedback(id) {
  * @returns {object} A react-query result containing the user's materials.
  */
 export function useUserMaterials() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.materials.all,
-    queryFn: () => materialService.getUserMaterials(),
+    queryFn: ({ pageParam }) => materialService.getUserMaterials(pageParam),
+    initialPageParam: null,
+    getNextPageParam: nextCursorParam,
   });
 }
 
