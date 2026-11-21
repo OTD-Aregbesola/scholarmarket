@@ -21,6 +21,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
+    "test:unit": "vitest run --config vitest.config.js",
+    "test:unit:backend": "node --test tests/backend/*.test.mjs",
     "test:all": "npm run test:contracts && npm run test:backend && npm run test:integration && npm run test:visual",
     "test:contracts": "hardhat test",
     "test:integration": "vitest run test/integration",

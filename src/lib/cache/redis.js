@@ -63,6 +63,31 @@ export async function cacheDel(key) {
   try { await redis.del(key); } catch { /* no-op */ }
 }
 
+export async function cacheSetAdd(key, member) {
+  const redis = await getRedisClient();
+  if (!redis) return;
+  try { await redis.sAdd(key, member); } catch { /* no-op */ }
+}
+
+export async function cacheSetMembers(key) {
+  const redis = await getRedisClient();
+  if (!redis) return [];
+  try { return await redis.sMembers(key); } catch { return []; }
+}
+
+export async function cacheDeleteMany(keys) {
+  if (!keys || keys.length === 0) return;
+  const redis = await getRedisClient();
+  if (!redis) return;
+  try { await redis.del(keys); } catch { /* no-op */ }
+}
+
+export async function cacheExpire(key, ttlSeconds) {
+  const redis = await getRedisClient();
+  if (!redis) return;
+  try { await redis.expire(key, ttlSeconds); } catch { /* no-op */ }
+}
+
 export async function cacheDelPattern(pattern) {
   const redis = await getRedisClient();
   if (!redis) return;
