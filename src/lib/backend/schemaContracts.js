@@ -18,6 +18,7 @@ export const REQUIRED_INDEXES = {
     { keys: { walletAddressLower: 1 }, options: { sparse: true } },
   ],
   materials: [
+    { keys: { deletedAt: 1 }, options: { name: "materials_deletedAt_idx" } },
     { keys: { userAddress: 1, createdAt: -1 } },
     { keys: { visibility: 1, createdAt: -1 } },
     { keys: { materialId: 1 }, options: { sparse: true } },

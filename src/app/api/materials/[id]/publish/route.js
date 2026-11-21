@@ -40,7 +40,7 @@ export async function POST(request, { params }) {
 
     // ── Resolve material ──────────────────────────────────────────────────
     const db = await getDb();
-    const material = await db.collection("materials").findOne({ _id: materialId });
+    const material = await db.collection("materials").findOne({ _id: materialId, deletedAt: null });
     if (!material) {
       auditLog({ event: "publish_not_found", route: "material-publish", method: "POST", status: 404, materialId });
       return NextResponse.json({ error: "Material not found" }, { status: 404 });
@@ -153,7 +153,7 @@ export async function GET(request, { params }) {
     }
 
     const db = await getDb();
-    const material = await db.collection("materials").findOne({ _id: materialId });
+    const material = await db.collection("materials").findOne({ _id: materialId, deletedAt: null });
 
     // Return checklist even if material not found (shows all fields as missing)
     const checklist = getPublishingChecklist(material);

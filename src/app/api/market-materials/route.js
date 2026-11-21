@@ -49,6 +49,7 @@ export async function GET(request) {
       
       const item = await db.collection("materials").findOne({ 
         _id: new ObjectId(id), 
+        deletedAt: null,
         visibility: "public" 
       });
 

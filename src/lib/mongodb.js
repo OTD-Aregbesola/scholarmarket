@@ -88,6 +88,8 @@ async function ensureIndexes(db) {
 
     await featureFlags.createIndex({ key: 1 }, { name: "feature_flags_key_idx", unique: true, background: true });
 
+    await materials.createIndex({ deletedAt: 1 }, { name: "materials_deletedAt_idx", background: true });
+
     await materials.createIndex(
       { category: 1, price: 1 },
       { name: "materials_category_price_idx", background: true },

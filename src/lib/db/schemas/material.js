@@ -40,6 +40,8 @@ export const MaterialSchema = {
           bsonType: "date",
           description: "When the quarantine record expires",
         },
+        deletedAt: { bsonType: ["date", "null"] },
+        deletedBy: { bsonType: ["string", "null"] },
         createdAt: {
           bsonType: "date",
           description: "Timestamp tracing entity entry operations",
