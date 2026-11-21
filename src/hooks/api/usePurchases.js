@@ -1,8 +1,10 @@
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { purchaseService } from '@/services/purchaseService';
 import { createIdempotencyAttemptManager } from '@/lib/api/clientIdempotency';
 import { queryKeys } from '@/lib/query/queryKeys';
+import { nextCursorParam } from '@/lib/pagination/query';
 
 /**
  * Fetches the authenticated user's purchase history.
@@ -10,9 +12,11 @@ import { queryKeys } from '@/lib/query/queryKeys';
  * @returns {object} A react-query result containing an array of past purchases.
  */
 export function usePurchaseHistory() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.purchases.history(),
-    queryFn: () => purchaseService.getPurchaseHistory(),
+    queryFn: ({ pageParam }) => purchaseService.getPurchaseHistory(pageParam),
+    initialPageParam: null,
+    getNextPageParam: nextCursorParam,
   });
 }
 
@@ -23,9 +27,11 @@ export function usePurchaseHistory() {
  * @returns {object} A react-query result containing an array of purchased materials.
  */
 export function usePurchasedMaterials() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.purchases.library(),
-    queryFn: () => purchaseService.getPurchasedMaterials(),
+    queryFn: ({ pageParam }) => purchaseService.getPurchasedMaterials(pageParam),
+    initialPageParam: null,
+    getNextPageParam: nextCursorParam,
     staleTime: 60 * 1000,
   });
 }

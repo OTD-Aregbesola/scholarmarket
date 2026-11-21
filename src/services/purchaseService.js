@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/apiClient';
+import { cursorQuery } from '@/lib/pagination/query';
 import { generateIdempotencyKey } from '@/lib/api/clientIdempotency';
 
 function resolveIdempotencyKey(options = {}) {
@@ -34,11 +35,11 @@ export const purchaseService = {
     return apiClient('/api/entitlements/batch', { body: { materialIds, buyerAddress } });
   },
 
-  getPurchaseHistory: async () => {
-    return apiClient('/api/purchase');
+  getPurchaseHistory: async (cursor, limit) => {
+    return apiClient(`/api/purchase${cursorQuery(cursor, limit)}`);
   },
 
-  getPurchasedMaterials: async () => {
-    return apiClient('/api/purchased-materials');
+  getPurchasedMaterials: async (cursor, limit) => {
+    return apiClient(`/api/purchased-materials${cursorQuery(cursor, limit)}`);
   },
 };

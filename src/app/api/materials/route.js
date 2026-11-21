@@ -10,6 +10,7 @@ import { ObjectId } from "mongodb";
 import { buildMaterialHistoryEntry, EDITABLE_MATERIAL_FIELDS } from "@/lib/backend/schemaContracts";
 import { withRevisionHistory } from "@/lib/materials/revisions";
 import { cacheGet, cacheSet, invalidateMarketplaceCache } from "@/lib/cache/redis";
+import { paginate } from "@/lib/pagination/cursor";
 
 import { logger } from "@/lib/logger";
 import { notifyPriceDrop } from "@/lib/backend/priceDropNotifications";
@@ -123,25 +124,33 @@ export async function GET(request) {
           return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const url = new URL(request.url);
+        const cursor = url.searchParams.get("cursor");
+        const limit = url.searchParams.get("limit");
+
         const userAddress = user.walletAddress || user.address || user.id;
-        const cacheKey = `materials:${userAddress}`;
+        const cacheKey = `materials:${userAddress}:${cursor || "first"}:${limit || "default"}`;
         const cached = await cacheGet(cacheKey);
         if (cached) {
           return NextResponse.json(cached, { status: 200 });
         }
 
         const db = await getDb();
-        const items = await db
-          .collection("materials")
-          .find({ userAddress })
-          .sort({ createdAt: -1 })
-          .toArray();
+        const page = await paginate({
+          collection: db.collection("materials"),
+          filter: { userAddress },
+          sort: { createdAt: -1, _id: -1 },
+          cursor,
+          limit,
+          transform: sanitizeMaterial,
+        });
+        await cacheSet(cacheKey, page, 60);
 
-        const normalized = items.map(sanitizeMaterial);
-        await cacheSet(cacheKey, normalized, 60);
-
-        return NextResponse.json(normalized);
+        return NextResponse.json(page);
       } catch (err) {
+        if (err.code === "INVALID_CURSOR") {
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
         if (err.name === "ValidationError") throw err;
         auditLog({ event: "material_list_failed", route: "materials", method: "GET", status: 500, reason: err.message });
         return NextResponse.json({ error: "Server error" }, { status: 500 });

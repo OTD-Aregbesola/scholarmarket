@@ -2,8 +2,9 @@ import { getDb } from '../mongodb.js';
 import { NETWORK_PASSPHRASE } from '../config/chain.js';
 import { TransactionBuilder, Keypair } from '@stellar/stellar-sdk';
 import crypto from 'crypto';
+import { CHALLENGE_TTL_SECONDS } from '../db/ttl.js';
 
-export const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+export const CHALLENGE_TTL_MS = CHALLENGE_TTL_SECONDS * 1000;
 const CHALLENGE_CLEANUP_INTERVAL_MS = 60 * 1000;
 
 function generateNonce() {

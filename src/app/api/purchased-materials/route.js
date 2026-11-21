@@ -7,6 +7,7 @@ import { withApiHardening } from "@/lib/api/hardening";
 import { auditLog } from "@/lib/api/audit";
 import { getUserFromCookie } from "@/lib/api/auth";
 import { COMPLETED_PURCHASE_STATUSES, normalizeBuyerAddress } from "@/lib/purchases/access";
+import { paginate } from "@/lib/pagination/cursor";
 
 /**
  * GET /api/purchased-materials
@@ -29,21 +30,32 @@ export async function GET(request) {
         return NextResponse.json({ error: "No wallet address on account" }, { status: 400 });
       }
 
+      const { searchParams } = new URL(request.url);
+      const cursor = searchParams.get("cursor");
+      const limit = searchParams.get("limit");
+
       const db = await getDb();
 
-      // Fetch all confirmed purchases for this buyer
-      const purchases = await db
-        .collection("purchases")
-        .find({ buyerAddress, status: { $in: [...COMPLETED_PURCHASE_STATUSES] } })
-        .sort({ purchasedAt: -1 })
-        .toArray();
-
-      if (purchases.length === 0) {
-        return NextResponse.json([]);
+      // Paginate confirmed purchases first so the material lookup stays bounded
+      // to at most one page of IDs regardless of collection size.
+      let page;
+      try {
+        page = await paginate({
+          collection: db.collection("purchases"),
+          filter: { buyerAddress, status: { $in: [...COMPLETED_PURCHASE_STATUSES] } },
+          sort: { purchasedAt: -1, createdAt: -1, _id: -1 },
+          cursor,
+          limit,
+        });
+      } catch (err) {
+        if (err.code === "INVALID_CURSOR") {
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
+        throw err;
       }
 
-      // Resolve material IDs — guard against malformed entries
-      const materialIds = purchases
+      // Resolve only this page's material IDs, guarding against malformed entries.
+      const materialIds = page.items
         .map((p) => {
           try {
             return ObjectId.isValid(p.materialId) ? new ObjectId(p.materialId) : null;
@@ -53,41 +65,31 @@ export async function GET(request) {
         })
         .filter(Boolean);
 
-      const materials = await db
-        .collection("materials")
-        .find({ _id: { $in: materialIds } })
-        .toArray();
+      const materials = materialIds.length
+        ? await db.collection("materials").find({ _id: { $in: materialIds } }).toArray()
+        : [];
 
       const materialMap = Object.fromEntries(
         materials.map((m) => [m._id.toString(), m])
       );
 
-      // Merge purchase record with material metadata; strip sensitive storage fields
-      const result = purchases.map((purchase) => {
+      // Merge purchase record with material metadata; strip sensitive storage fields.
+      const items = page.items.map((purchase) => {
         const material = materialMap[purchase.materialId] || null;
-        if (!material) {
-          return {
-            purchaseId: purchase._id,
-            materialId: purchase.materialId,
-            purchasedAt: purchase.purchasedAt,
-            transactionHash: purchase.transactionHash,
-            material: null,
-          };
-        }
-
-        const { storageKey, fileUrl, metadataUrl, ...safeMaterial } = material;
-
-        return {
+        const base = {
           purchaseId: purchase._id,
           materialId: purchase.materialId,
           purchasedAt: purchase.purchasedAt,
           transactionHash: purchase.transactionHash,
-          material: safeMaterial,
         };
+        if (!material) return { ...base, material: null };
+
+        const { storageKey, fileUrl, metadataUrl, ...safeMaterial } = material;
+        return { ...base, material: safeMaterial };
       });
 
       auditLog({ event: "purchased_materials_listed", route: "purchased-materials", method: "GET", status: 200, actor: user.sub });
-      return NextResponse.json(result);
+      return NextResponse.json({ items, nextCursor: page.nextCursor, hasMore: page.hasMore });
     }
   );
 }

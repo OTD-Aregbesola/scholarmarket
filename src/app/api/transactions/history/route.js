@@ -8,17 +8,13 @@ import {
   fetchHorizonTransactions,
 } from "@/lib/transactions/historyFeed";
 import { logger } from "@/lib/logger";
+import { paginate } from "@/lib/pagination/cursor";
 
-function parsePage(value) {
-  const page = Number(value);
-  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-}
-
-function parseLimit(value) {
-  const limit = Number(value);
-  if (!Number.isFinite(limit) || limit <= 0) return 20;
-  return Math.min(Math.floor(limit), 100);
-}
+// On-chain activity is merged into the first page only, as a bounded recent
+// window. MongoDB purchase records are the paginated source of truth; Horizon
+// has no seek cursor here, so deeper on-chain history is intentionally not
+// paginated. This keeps pages stable while exposing recent chain activity.
+const ONCHAIN_WINDOW = 20;
 
 export async function GET(request) {
   try {
@@ -33,48 +29,50 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parsePage(searchParams.get("page"));
-    const limit = parseLimit(searchParams.get("limit"));
+    const cursor = searchParams.get("cursor");
+    const limit = searchParams.get("limit");
 
     const db = await getDb();
-    const skip = (page - 1) * limit;
-
     const buyerAddressLower = String(buyerAddress).toLowerCase();
     const purchaseFilter = {
       $or: [{ buyerAddress }, { buyerAddress: buyerAddressLower }],
     };
 
-    const [purchases, purchaseTotal, onchain] = await Promise.all([
-      db
-        .collection("purchases")
-        .find(purchaseFilter)
-        .sort({ purchasedAt: -1, createdAt: -1, updatedAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .toArray(),
-      db.collection("purchases").countDocuments(purchaseFilter),
-      fetchHorizonTransactions(String(buyerAddress), { page, limit }),
-    ]);
-
-    const purchaseRecords = buildPurchaseHistoryRecords(purchases);
-    const purchaseHashes = new Set(purchaseRecords.map((entry) => entry.hash).filter(Boolean));
-    const uniqueOnchain = onchain.records.filter((entry) => !entry.hash || !purchaseHashes.has(entry.hash));
-    const combined = [...purchaseRecords, ...uniqueOnchain].sort((a, b) => {
-      const left = new Date(a.createdAt || 0).getTime();
-      const right = new Date(b.createdAt || 0).getTime();
-      return right - left;
+    const page = await paginate({
+      collection: db.collection("purchases"),
+      filter: purchaseFilter,
+      sort: { purchasedAt: -1, createdAt: -1, _id: -1 },
+      cursor,
+      limit,
+      transform: (purchase) => buildPurchaseHistoryRecords([purchase])[0],
     });
+
+    let items = page.items;
+    if (!cursor) {
+      const onchain = await fetchHorizonTransactions(String(buyerAddress), {
+        page: 1,
+        limit: ONCHAIN_WINDOW,
+      });
+      const purchaseHashes = new Set(items.map((entry) => entry.hash).filter(Boolean));
+      const uniqueOnchain = onchain.records.filter(
+        (entry) => !entry.hash || !purchaseHashes.has(entry.hash),
+      );
+      items = [...items, ...uniqueOnchain].sort((a, b) => {
+        const left = new Date(a.createdAt || 0).getTime();
+        const right = new Date(b.createdAt || 0).getTime();
+        return right - left;
+      });
+    }
 
     return NextResponse.json({
-      page,
-      limit,
-      hasMore: purchaseTotal > page * limit || onchain.hasMore,
-      totals: {
-        purchases: purchaseTotal,
-      },
-      records: combined,
+      items,
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
     });
   } catch (error) {
+    if (error.code === "INVALID_CURSOR") {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     logger.error("Transaction history error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

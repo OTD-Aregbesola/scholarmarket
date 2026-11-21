@@ -1,6 +1,7 @@
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { materialService } from '@/services/materialService';
 import { queryKeys } from '@/lib/query/queryKeys';
+import { nextCursorParam } from '@/lib/pagination/query';
 
 /**
  * Fetches paginated marketplace materials with optional filtering parameters.
@@ -84,9 +85,11 @@ export function useMaterialFeedback(id) {
  * @returns {object} A react-query result containing the user's materials.
  */
 export function useUserMaterials() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: queryKeys.materials.all,
-    queryFn: () => materialService.getUserMaterials(),
+    queryFn: ({ pageParam }) => materialService.getUserMaterials(pageParam),
+    initialPageParam: null,
+    getNextPageParam: nextCursorParam,
   });
 }
 

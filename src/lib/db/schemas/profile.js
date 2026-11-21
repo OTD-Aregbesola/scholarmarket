@@ -1,47 +1,58 @@
 /**
- * Core Data Schema Definition for User Profiles
- * Used for documentation, type parsing, and runtime verification.
+ * MongoDB validator for user profiles.
  *
- * All new user documents MUST include a `uuid` field generated at
- * registration time via crypto.randomUUID(). Legacy users without a uuid
- * should be backfilled using scripts/migrations/assign-uuids.mjs.
+ * New profiles receive a `uuid` at creation time; legacy documents are
+ * backfilled by the `20261120000200-assign-uuids` migration. Timestamps may
+ * be Date objects or ISO strings because older code paths used strings.
  */
 export const ProfileSchema = {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["uuid", "walletAddress", "createdAt"],
+      required: ["walletAddress", "createdAt"],
       properties: {
         uuid: {
           bsonType: "string",
           description: "RFC 4122 UUID uniquely identifying this user across systems",
         },
         walletAddress: {
-          bsonType: "string",
+          bsonType: ["string", "null"],
           description: "Primary blockchain wallet address used for authentication",
         },
-        displayName: {
+        walletAddressLower: {
+          bsonType: ["string", "null"],
+          description: "Lowercased wallet address used for case-insensitive lookups",
+        },
+        fullName: {
           bsonType: "string",
-          description: "Optional human-readable name shown on public profile pages",
+          description: "Full name supplied at profile creation",
         },
         email: {
           bsonType: "string",
           description: "Optional email address for notifications and recovery",
         },
+        displayName: {
+          bsonType: "string",
+          description: "Optional human-readable name shown on public profile pages",
+        },
         avatarCid: {
           bsonType: "string",
           description: "IPFS Content Identifier for the user's profile avatar",
+        },
+        avatarUrl: {
+          bsonType: "string",
+          description: "Optional avatar URL",
         },
         bio: {
           bsonType: "string",
           description: "Short creator biography displayed on the marketplace",
         },
         createdAt: {
-          bsonType: "date",
+          bsonType: ["date", "string"],
           description: "Timestamp recording when the profile was first created",
         },
         updatedAt: {
-          bsonType: "date",
+          bsonType: ["date", "string"],
           description: "Timestamp of the most recent profile update",
         },
       },

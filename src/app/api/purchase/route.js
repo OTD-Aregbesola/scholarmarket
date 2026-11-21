@@ -16,6 +16,7 @@ import { withApiHardening } from "@/lib/api/hardening";
 import { withIdempotency } from "@/lib/api/idempotency";
 import { API_RATE_LIMITS } from "@/lib/api/rateLimitConfig";
 import { withRequestLogger } from "@/lib/logger";
+import { paginate } from "@/lib/pagination/cursor";
 
 
 /**
@@ -46,17 +47,26 @@ export const GET = withRequestLogger(async function GET(req, context, requestLog
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const url = new URL(req.url);
+    const cursor = url.searchParams.get("cursor");
+    const limit = url.searchParams.get("limit");
+
     const db = await getDb();
     const userAddress = normalizeBuyerAddress(user.walletAddress || user.address || user.id);
 
-    const purchases = await db
-      .collection("purchases")
-      .find({ buyerAddress: userAddress })
-      .sort({ createdAt: -1 })
-      .toArray();
+    const page = await paginate({
+      collection: db.collection("purchases"),
+      filter: { buyerAddress: userAddress },
+      sort: { createdAt: -1, _id: -1 },
+      cursor,
+      limit,
+    });
 
-    return NextResponse.json(purchases);
+    return NextResponse.json({ items: page.items, nextCursor: page.nextCursor, hasMore: page.hasMore });
   } catch (err) {
+    if (err.code === "INVALID_CURSOR") {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     requestLogger.error({ err }, "GET /api/purchase error");
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }

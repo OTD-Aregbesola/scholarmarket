@@ -10,6 +10,7 @@ import { withApiHardening } from "@/lib/api/hardening";
 import { withIdempotency } from "@/lib/api/idempotency";
 import { API_RATE_LIMITS } from "@/lib/api/rateLimitConfig";
 import { withRequestLogger } from "@/lib/logger";
+import { CHECKOUT_INTENT_TTL_SECONDS } from "@/lib/db/ttl";
 
 const handleInitiateCheckout = withIdempotency(async function initiateCheckoutHandler(req, context, requestLogger) {
   try {
@@ -98,7 +99,7 @@ const handleInitiateCheckout = withIdempotency(async function initiateCheckoutHa
       geolocation: checkoutWithTax.geolocation,
       status: 'initiated',
       createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+      expiresAt: new Date(Date.now() + CHECKOUT_INTENT_TTL_SECONDS * 1000),
     };
 
     const result = await db.collection('checkout_intents').insertOne(checkoutIntent);

@@ -43,6 +43,17 @@ export function EmptyState({ message = 'No items found', className = '' }) {
 }
 
 /**
+ * Normalizes both `useQuery` results (`{ items }` or a bare array) and
+ * `useInfiniteQuery` results (`{ pages }`) into a single flat item list.
+ */
+export function flattenInfiniteData(data) {
+  if (data && Array.isArray(data.pages)) {
+    return data.pages.flatMap((page) => page?.items || []);
+  }
+  return data?.items || data;
+}
+
+/**
  * A reusable wrapper for handling TanStack Query states consistently.
  */
 export function QueryStateProvider({ 
@@ -63,7 +74,7 @@ export function QueryStateProvider({
     return errorComponent || <ErrorMessage message={error?.message} retry={refetch} />;
   }
 
-  const items = data?.items || data;
+  const items = flattenInfiniteData(data);
   const isEmpty = !items || (Array.isArray(items) && items.length === 0);
 
   if (isEmpty) {
