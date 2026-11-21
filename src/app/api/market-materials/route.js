@@ -9,6 +9,7 @@ import { buildMarketplaceDiscoveryQuery, buildMarketplaceSort } from "@/lib/back
 import { getDb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { cacheGet, cacheSet } from "@/lib/cache/redis";
+import { withRevisionHistory } from "@/lib/materials/revisions";
 import { withReadCache } from "@/lib/api/readCache";
 
 export const runtime = "nodejs";
@@ -19,14 +20,14 @@ function sanitizeMaterial(doc) {
   const averageScore = Number(safe.averageScore ?? safe.rating ?? 0) || 0;
   const feedbackCount = Number(safe.feedbackCount ?? safe.reviewsCount ?? 0) || 0;
 
-  return {
+  return withRevisionHistory({
     ...safe,
     averageScore,
     rating: averageScore,
     feedbackCount,
     reviewsCount: feedbackCount,
     userAddress: safe.userAddress ?? safe.ownerAddress ?? null,
-  };
+  });
 }
 
 // GET /api/market-materials

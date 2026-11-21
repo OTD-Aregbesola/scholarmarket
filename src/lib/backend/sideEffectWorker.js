@@ -7,8 +7,12 @@
 
 import { getDb } from '@/lib/mongodb';
 import { logger } from '@/lib/logger';
-import { sendPurchaseReceiptEmail, sendRefundNotificationEmail } from '@/lib/email';
-import { sendWebhookWithRetry } from '@/lib/webhooks/sender';
+import {
+  sendPurchaseReceiptEmail,
+  sendRefundNotificationEmail,
+  sendMaterialRevisionEmail,
+} from '@/lib/email';
+import { sendSignedWebhook } from '@/lib/webhooks/signing';
 import {
   leaseNextIntent,
   markDelivered,
@@ -52,6 +56,11 @@ async function processEmailIntent(intent) {
     await processRefundEmailIntent(intent);
     return;
   }
+  if (intent.intent.channel === 'material_revision') {
+    const { email, material, revision, buyerAddress } = intent.intent.payload;
+    await sendMaterialRevisionEmail(email, material, revision, buyerAddress);
+    return;
+  }
   const { email, purchase, material } = intent.intent.payload;
   await sendPurchaseReceiptEmail(email, purchase, material);
 }
@@ -62,8 +71,10 @@ async function processWebhookIntent(intent) {
     throw new Error('Webhook intent missing urls array');
   }
 
+  // The outbox owns retry, jitter and dead-lettering. One HTTP attempt here
+  // avoids multiplying the outbox attempt count by an inner retry loop.
   const results = await Promise.allSettled(
-    urls.map(url => sendWebhookWithRetry(url, payload, 3))
+    urls.map(url => sendSignedWebhook(url, payload))
   );
 
   const failures = results

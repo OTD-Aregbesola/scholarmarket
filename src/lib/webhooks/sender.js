@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/mongodb';
 import { logger } from '@/lib/logger';
+import { sendSignedWebhook } from './signing.js';
 
 export async function getDailyStats(db) {
   const now = new Date();
@@ -48,12 +49,16 @@ export async function getDailyStats(db) {
   };
 }
 
-export async function sendWebhookWithRetry(url, payload, retries = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+export { sendSignedWebhook };
 
+/**
+ * Backwards-compatible alias. Retries are owned by the outbox, not the
+ * sender, so the extra `retries` argument is intentionally ignored.
+ */
+export async function sendWebhookWithRetry(url, payload) {
+  const sent = await sendSignedWebhook(url, payload);
+  logger.info(`Webhook sent successfully to ${url}`);
+  return sent;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -95,7 +100,7 @@ export async function sendWebhookWithRetry(url, payload, retries = 3) {
   return false;
 }
 
-import { enqueueSideEffect } from '@/lib/backend/outbox';
+import { enqueueSideEffect, WEBHOOK_OUTBOX_CONFIG } from '@/lib/backend/outbox';
 
 export async function broadcastPurchaseEvent(materialId, purchaseData) {
   try {
@@ -141,6 +146,7 @@ export async function broadcastPurchaseEvent(materialId, purchaseData) {
           payload,
         },
       },
+      config: WEBHOOK_OUTBOX_CONFIG,
     });
 
   } catch (error) {

@@ -8,6 +8,7 @@ import { getUserFromCookie } from "@/lib/api/auth";
 import { getDb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { buildMaterialHistoryEntry, EDITABLE_MATERIAL_FIELDS } from "@/lib/backend/schemaContracts";
+import { withRevisionHistory } from "@/lib/materials/revisions";
 import { cacheGet, cacheSet, invalidateMarketplaceCache } from "@/lib/cache/redis";
 
 import { logger } from "@/lib/logger";
@@ -17,7 +18,7 @@ export const runtime = "nodejs";
 function sanitizeMaterial(doc) {
   if (!doc) return doc;
   const { storageKey, fileUrl, metadataUrl, ...safe } = doc;
-  return safe;
+  return withRevisionHistory(safe);
 }
 
 /**
