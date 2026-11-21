@@ -20,11 +20,13 @@ const { mockSubmit, mockLoadAccount, mockFeeStats } = vi.hoisted(() => ({
 
 vi.mock('@stellar/stellar-sdk', () => ({
   Horizon: {
-    Server: vi.fn().mockImplementation(() => ({
-      submitTransaction: mockSubmit,
-      loadAccount: mockLoadAccount,
-      feeStats: mockFeeStats,
-    })),
+    Server: vi.fn().mockImplementation(function Server() {
+      return {
+        submitTransaction: mockSubmit,
+        loadAccount: mockLoadAccount,
+        feeStats: mockFeeStats,
+      };
+    }),
   },
 }));
 

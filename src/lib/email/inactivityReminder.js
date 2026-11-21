@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { renderInactivityReminderEmail } from "./templates/inactivityReminder.js";
+import { isNotificationEnabled } from "../api/validation.js";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -48,10 +49,14 @@ function createTransporter() {
  * @param {{ materialCount: number, demotedCount: number }} stats
  * @returns {Promise<void>}
  */
-export async function sendInactivityReminder(to, name, inactiveDays, stats) {
+export async function sendInactivityReminder(to, name, inactiveDays, stats, options = {}) {
+  const { notificationPreferences, user, sendMail } = options;
+  if (!isNotificationEnabled(notificationPreferences || user, "reminders")) {
+    return { sent: false, reason: "reminders_disabled" };
+  }
+
   const defaultFrom = process.env.EMAIL_USER || "no-reply@scholarmarket.local";
   const from = process.env.EMAIL_FROM || defaultFrom;
-  const transporter = createTransporter();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const dashboardUrl = `${appUrl}/dashboard`;
@@ -201,5 +206,12 @@ export async function sendInactivityReminder(to, name, inactiveDays, stats) {
     stats,
   });
 
-  await transporter.sendMail({ from, to, subject, text, html, headers });
+  const message = { from, to, subject, text, html, headers };
+  if (typeof sendMail === "function") {
+    await sendMail(message);
+  } else {
+    const transporter = createTransporter();
+    await transporter.sendMail(message);
+  }
+  return { sent: true };
 }

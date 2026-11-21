@@ -30,6 +30,7 @@
     "test:components": "vitest run src/components/__tests__",
     "test:components:watch": "vitest watch src/components/__tests__",
     "test:backend": "node --test tests/backend/*.test.mjs",
+    "test:routes": "node --test tests/routes/checkout.route.test.mjs tests/routes/profile.route.test.mjs",
     "test:visual": "playwright test test/visual",
     "test:visual:debug": "playwright test --debug test/visual",
     "test:e2e": "playwright test --config playwright.config.ts --project=chromium",
