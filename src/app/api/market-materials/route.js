@@ -10,6 +10,7 @@ import { getDb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { cacheGet, cacheSet } from "@/lib/cache/redis";
 import { withRevisionHistory } from "@/lib/materials/revisions";
+import { withReadCache } from "@/lib/api/readCache";
 
 export const runtime = "nodejs";
 
@@ -57,7 +58,10 @@ export async function GET(request) {
         return NextResponse.json({ error: "Material not found" }, { status: 404 });
       }
 
-      return NextResponse.json(sanitizeMaterial(item));
+      return withReadCache(request, sanitizeMaterial(item), {
+        scope: "public",
+        endpoint: "market-materials",
+      });
     }
 
     // 2️⃣ Handle list fetch
@@ -66,7 +70,10 @@ export async function GET(request) {
     const cacheKey = `market-materials:${url.searchParams.toString()}`;
     const cached = await cacheGet(cacheKey);
     if (cached) {
-      return NextResponse.json(cached, { status: 200 });
+      return withReadCache(request, cached, {
+        scope: "public",
+        endpoint: "market-materials",
+      });
     }
 
     const query = buildMarketplaceDiscoveryQuery(url.searchParams);
@@ -88,7 +95,10 @@ export async function GET(request) {
     const payload = { items: normalized, page, pageSize, total, totalPages };
     await cacheSet(cacheKey, payload, 600);
 
-    return NextResponse.json(payload, { status: 200 });
+    return withReadCache(request, payload, {
+      scope: "public",
+      endpoint: "market-materials",
+    });
   } catch (err) {
     if (err.name === "ValidationError") throw err;
     auditLog({ event: "market_materials_failed", route: "market-materials", method: "GET", status: 500, reason: err.message });

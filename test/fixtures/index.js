@@ -38,3 +38,39 @@ export const materials = {
         ipfsHash: "QmTestHash...",
     }
 };
+
+export const comparisonMaterials = [
+    {
+        _id: "cmp_1",
+        title: "Calculus Notes",
+        author: "Alice Educator",
+        price: "10",
+        rating: 4.5,
+        likes: 12,
+        subject: "Mathematics",
+        storageKey: "files/calculus.pdf",
+        usageRights: "Classroom use allowed.",
+    },
+    {
+        id: "cmp_2",
+        title: "Physics Slides",
+        author: "Bob Teacher",
+        price: "25",
+        rating: 3.2,
+        likes: 3,
+        subject: "Physics",
+        storageKey: "files/physics.pptx",
+    },
+    {
+        _id: "cmp_3",
+        title: "Essay Guide",
+        price: "5",
+        storageKey: "files/essay.docx",
+    },
+    {
+        _id: "cmp_4",
+        title: "Chemistry Sheet",
+        price: "8",
+        storageKey: "files/chem.pdf",
+    },
+];

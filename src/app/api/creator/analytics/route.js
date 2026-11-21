@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server.js";
 import { getDb } from "../../../../lib/mongodb.js";
 import { getUserFromCookie } from "../../../../lib/api/auth.js";
+import {
+  buildCreatorAnalyticsKey,
+  getOrComputeAnalytics,
+  normalizeAnalyticsRange,
+} from "../../../../lib/cache/creatorAnalytics.js";
 
 export const dynamic = "force-dynamic";
 import { logger } from "../../../../lib/logger.js";
@@ -19,15 +24,12 @@ function parseDateRange(url) {
     ? new Date(fromParam)
     : new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
-    const fallbackTo = new Date();
-    return {
-      from: new Date(fallbackTo.getTime() - 30 * 24 * 60 * 60 * 1000),
-      to: fallbackTo,
-    };
-  }
-
-  return { from, to };
+  return normalizeAnalyticsRange({
+    from,
+    to,
+    fromProvided: Boolean(fromParam),
+    toProvided: Boolean(toParam),
+  });
 }
 
 function formatCurrency(amount) {
@@ -129,7 +131,27 @@ export async function GET(request) {
 
     const url = new URL(request.url);
     const { from, to } = parseDateRange(url);
+    const granularity = url.searchParams.get("granularity") || "day";
+    const cacheKey = buildCreatorAnalyticsKey({ creator: creatorAddress, from, to, granularity });
 
+    const { data, cacheHit } = await getOrComputeAnalytics({
+      key: cacheKey,
+      creator: creatorAddress,
+      ttlSeconds: undefined,
+      compute: () => computeCreatorAnalytics(creatorAddress, from, to),
+    });
+
+    return NextResponse.json(data, {
+      headers: { "X-Analytics-Cache": cacheHit ? "HIT" : "MISS" },
+    });
+  } catch (error) {
+    logger.error("[analytics] GET error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+async function computeCreatorAnalytics(creatorAddress, from, to) {
+  try {
     const db = await getDb();
     const purchases = db.collection("purchases");
     const materials = db.collection("materials");
@@ -169,7 +191,7 @@ export async function GET(request) {
     }
 
     if (materialIdStrings.length === 0) {
-      return NextResponse.json({
+      return {
         totalRevenue: 0,
         totalSales: 0,
         monthlySales: 0,
@@ -191,7 +213,7 @@ export async function GET(request) {
           from: from.toISOString(),
           to: to.toISOString(),
         },
-      });
+      };
     }
 
     const completedMatch = {
@@ -462,7 +484,7 @@ export async function GET(request) {
       withdrawals = [];
     }
 
-    return NextResponse.json({
+    return {
       totalRevenue,
       totalSales,
       monthlySales,
@@ -488,9 +510,9 @@ export async function GET(request) {
         from: from.toISOString(),
         to: to.toISOString(),
       },
-    });
+    };
   } catch (error) {
-    logger.error("[analytics] GET error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    logger.error("[analytics] computeCreatorAnalytics error:", error);
+    throw error;
   }
 }

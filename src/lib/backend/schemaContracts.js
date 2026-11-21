@@ -10,6 +10,7 @@ export const COLLECTIONS = {
   deadLetterEvents: "dead_letter_events",
   materialHistory: "material_history",
   savedMaterials: "saved_materials",
+  idempotencyKeys: "idempotency_keys",
 };
 
 export const REQUIRED_INDEXES = {
@@ -71,6 +72,10 @@ export const REQUIRED_INDEXES = {
   saved_materials: [
     { keys: { walletAddress: 1, savedAt: -1 } },
     { keys: { walletAddress: 1, materialId: 1 }, options: { unique: true } },
+  ],
+  idempotency_keys: [
+    { keys: { key: 1 }, options: { unique: true, name: "idempotency_key_unique_idx" } },
+    { keys: { createdAt: 1 }, options: { expireAfterSeconds: 86400, name: "idempotency_createdAt_ttl_idx" } },
   ],
 };
 

@@ -1,4 +1,14 @@
 import nodemailer from 'nodemailer'
+import { renderSuspensionEmail, renderReactivationEmail } from './templates/suspension.js'
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 function createTransporter() {
   const smtpHost = process.env.SMTP_HOST
@@ -75,14 +85,14 @@ function buildSuspensionHtml({ name, reason, appealEmail }) {
                     Your account has been suspended
                   </h1>
                   <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                    Hi ${name},
+                    Hi ${escapeHtml(name)},
                   </p>
                   <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                     We've temporarily suspended access to your ScholarMarket account. Here's why:
                   </p>
                   <div style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:4px;padding:12px 16px;margin:0 0 20px 0;">
                     <p style="margin:0;font-size:14px;line-height:1.6;color:#7f1d1d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                      ${reason || 'Violation of ScholarMarket community guidelines or terms of service.'}
+                      ${escapeHtml(reason || 'Violation of ScholarMarket community guidelines or terms of service.')}
                     </p>
                   </div>
                   <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">What this means:</p>
@@ -196,7 +206,7 @@ function buildReactivationHtml({ name }) {
                     Your account has been reactivated
                   </h1>
                   <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                    Hi ${name},
+                    Hi ${escapeHtml(name)},
                   </p>
                   <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                     Good news — your ScholarMarket account has been fully reinstated. You can now log in and access all features as normal.
@@ -255,14 +265,22 @@ function buildReactivationText({ name }) {
 export async function sendSuspensionEmail({ to, name, reason, appealEmail }) {
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@scholarmarket.local'
   const transporter = createTransporter()
+  const { subject, text, html } = renderSuspensionEmail({ name, reason, appealEmail })
 
-  await transporter.sendMail({
-    from,
-    to,
-    subject: 'Important: Your ScholarMarket account has been suspended',
-    text: buildSuspensionText({ name, reason, appealEmail }),
-    html: buildSuspensionHtml({ name, reason, appealEmail }),
-  })
+  try {
+    await transporter.sendMail({
+      from,
+      to,
+      subject: 'Important: Your ScholarMarket account has been suspended',
+      text: buildSuspensionText({ name, reason, appealEmail }),
+      html: buildSuspensionHtml({ name, reason, appealEmail }),
+    })
+    return { sent: true }
+  } catch (err) {
+    console.error('[email:suspensionNotifier] Failed to send suspension email:', err)
+    return { sent: false, error: err instanceof Error ? err.message : String(err) }
+  }
+  await transporter.sendMail({ from, to, subject, text, html })
 }
 
 /**
@@ -273,12 +291,20 @@ export async function sendSuspensionEmail({ to, name, reason, appealEmail }) {
 export async function sendReactivationEmail({ to, name }) {
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@scholarmarket.local'
   const transporter = createTransporter()
+  const { subject, text, html } = renderReactivationEmail({ name })
 
-  await transporter.sendMail({
-    from,
-    to,
-    subject: 'Good news: Your ScholarMarket account has been reactivated',
-    text: buildReactivationText({ name }),
-    html: buildReactivationHtml({ name }),
-  })
+  try {
+    await transporter.sendMail({
+      from,
+      to,
+      subject: 'Good news: Your ScholarMarket account has been reactivated',
+      text: buildReactivationText({ name }),
+      html: buildReactivationHtml({ name }),
+    })
+    return { sent: true }
+  } catch (err) {
+    console.error('[email:suspensionNotifier] Failed to send reactivation email:', err)
+    return { sent: false, error: err instanceof Error ? err.message : String(err) }
+  }
+  await transporter.sendMail({ from, to, subject, text, html })
 }

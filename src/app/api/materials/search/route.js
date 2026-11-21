@@ -12,6 +12,7 @@ import { buildMarketplaceDiscoveryQuery, buildMarketplaceSort } from "@/lib/back
 import { getDb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { cacheGet, cacheSet } from "@/lib/cache/redis";
+import { withReadCache } from "@/lib/api/readCache";
 
 export const runtime = "nodejs";
 
@@ -54,7 +55,10 @@ export async function GET(request) {
         const cacheKey = `materials-search:${params.toString()}`;
         const cached = await cacheGet(cacheKey);
         if (cached) {
-          return NextResponse.json(cached, { status: 200 });
+          return withReadCache(request, cached, {
+            scope: "public",
+            endpoint: "materials-search",
+          });
         }
 
         const query = buildMarketplaceDiscoveryQuery(params);
@@ -74,7 +78,10 @@ export async function GET(request) {
         const payload = { items: normalized, page, pageSize, total, totalPages };
 
         await cacheSet(cacheKey, payload, 300);
-        return NextResponse.json(payload, { status: 200 });
+        return withReadCache(request, payload, {
+          scope: "public",
+          endpoint: "materials-search",
+        });
       } catch (err) {
         if (err.name === "ValidationError") throw err;
         auditLog({ event: "materials_search_failed", route: "materials-search", method: "GET", status: 500, reason: err.message });

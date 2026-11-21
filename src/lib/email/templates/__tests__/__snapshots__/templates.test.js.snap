@@ -1,0 +1,401 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`email templates > renders the admin report with HTML and text parts 1`] = `
+"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  
+  <title>ScholarMarket Weekly Report</title>
+  <style>
+    @media (prefers-color-scheme:dark){
+      .card{background:#111827!important;color:#e5e7eb!important;}
+      .muted{color:#9ca3af!important;}
+      td{color:#d1d5db!important;}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f6f9fc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6f9fc;">
+    <tr><td align="center" style="padding:24px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;">
+        <tr>
+          <td style="padding:0 0 12px 0;" align="center">
+            <a href="https://scholarmarket.test" style="text-decoration:none;color:#111827;">
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:18px;">ScholarMarket</span>
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td class="card" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+              
+              <tr>
+                <td style="padding:24px 24px 8px 24px;">
+                  
+    <h1 style="margin:0 0 4px 0;font-size:20px;line-height:1.3;color:#111827;">Weekly Marketplace Report</h1>
+    <p class="muted" style="margin:0 0 20px 0;font-size:13px;color:#6b7280;">Nov 9, 2026 – Nov 16, 2026</p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+    <tr>
+      <td style="padding:10px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">Total completed sales</td>
+      <td style="padding:10px 16px;font-size:14px;font-weight:700;color:#111827;border-bottom:1px solid #f3f4f6;text-align:right;">1,234</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">Total revenue (XLM)</td>
+      <td style="padding:10px 16px;font-size:14px;font-weight:700;color:#111827;border-bottom:1px solid #f3f4f6;text-align:right;">5,678.5</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">New user registrations</td>
+      <td style="padding:10px 16px;font-size:14px;font-weight:700;color:#111827;border-bottom:1px solid #f3f4f6;text-align:right;">42</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">New materials uploaded</td>
+      <td style="padding:10px 16px;font-size:14px;font-weight:700;color:#111827;border-bottom:1px solid #f3f4f6;text-align:right;">17</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">Active listings (all time)</td>
+      <td style="padding:10px 16px;font-size:14px;font-weight:700;color:#111827;border-bottom:1px solid #f3f4f6;text-align:right;">321</td>
+    </tr>
+    </table>
+    <p style="margin:20px 0 0 0;">
+      <a href="https://scholarmarket.test/admin" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;">View admin dashboard</a>
+    </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:16px 8px 0 8px;">
+            <p class="muted" style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Automated weekly report</p>
+            
+            <p class="muted" style="margin:0 0 24px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              &copy; 2026 ScholarMarket
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"
+`;
+
+exports[`email templates > renders the admin report with HTML and text parts 2`] = `
+"ScholarMarket Weekly Marketplace Report
+Period: 2026-11-09 – 2026-11-16
+
+Total completed sales   : 1234
+Total revenue (XLM)     : 5678.5
+New user registrations  : 42
+New materials uploaded  : 17
+Active listings (all time): 321
+
+Admin dashboard: https://scholarmarket.test/admin
+
+— ScholarMarket Team
+© 2026 ScholarMarket"
+`;
+
+exports[`email templates > renders the inactivity reminder with a working unsubscribe link 1`] = `
+"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="description" content="Your catalog has been inactive for 200 days"/>
+  <title>ScholarMarket Inactivity Reminder</title>
+  <style>
+    @media (prefers-color-scheme:dark){
+      .card{background:#111827!important;color:#e5e7eb!important;}
+      .muted{color:#9ca3af!important;}
+      td{color:#d1d5db!important;}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f6f9fc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6f9fc;">
+    <tr><td align="center" style="padding:24px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;">
+        <tr>
+          <td style="padding:0 0 12px 0;" align="center">
+            <a href="https://scholarmarket.test" style="text-decoration:none;color:#111827;">
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:18px;">ScholarMarket</span>
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td class="card" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+              
+              <tr>
+                <td style="padding:24px 24px 8px 24px;">
+                  
+    <h1 style="margin:0 0 8px 0;font-size:22px;line-height:1.3;color:#111827;">Your catalog needs attention</h1>
+    <p class="muted" style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#6b7280;">
+      Hi Ada, your ScholarMarket profile has been inactive for <strong>200 days</strong>.
+    </p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 16px 0;">
+      <tr>
+        <td style="background:#f0f4ff;border:1px solid #e0e7ff;border-radius:8px;padding:12px 16px;">
+          <p style="margin:0 0 4px 0;font-size:12px;text-transform:uppercase;color:#6b7280;">Catalog items</p>
+          <p style="margin:0;font-size:20px;font-weight:700;color:#111827;">5</p>
+        </td>
+        <td style="width:8px;"></td>
+       <td style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;">
+         <p style="margin:0 0 4px 0;font-size:12px;text-transform:uppercase;color:#6b7280;">Low-relevance flagged</p>
+         <p style="margin:0;font-size:20px;font-weight:700;color:#dc2626;">2</p>
+       </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 8px 0;font-size:14px;line-height:1.6;color:#111827;">2 of your 5 catalog item(s) have been marked as low-relevance and may not appear in marketplace search results.</p>
+    <p style="margin:0 0 8px 0;font-size:14px;line-height:1.6;color:#111827;">To keep your catalog visible:</p>
+    <ol style="margin:0 0 16px 0;padding-left:20px;font-size:14px;line-height:1.8;color:#374151;">
+      <li>Log in and review your published materials</li>
+      <li>Update descriptions, pricing, or thumbnails</li>
+      <li>Publish new content to signal active stewardship</li>
+    </ol>
+    <p style="margin:20px 0;">
+      <a href="https://scholarmarket.test/dashboard" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;">Go to your dashboard</a>
+    </p>
+    <p class="muted" style="margin:0;font-size:13px;line-height:1.6;color:#6b7280;">
+      If you no longer plan to maintain your catalog, consider unpublishing your materials to keep the marketplace high-quality.
+    </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:16px 8px 0 8px;">
+            <p class="muted" style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">You&#39;re receiving this because you have a creator profile on ScholarMarket.</p>
+            <p class="muted" style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <a href="https://scholarmarket.test/api/email/unsubscribe?token=eyJlbWFpbCI6ImNyZWF0b3JAZXhhbXBsZS5jb20iLCJjYXRlZ29yeSI6InJlbWluZGVycyJ9.t6zERJldw6uhz6ouZxYq16bHf2SU0w0iDHZQ9p3RkHo" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>
+        </p>
+            <p class="muted" style="margin:0 0 24px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              &copy; 2026 ScholarMarket
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"
+`;
+
+exports[`email templates > renders the inactivity reminder with a working unsubscribe link 2`] = `
+"Hi Ada,
+
+Your ScholarMarket profile has been inactive for 200 days.
+
+2 of your 5 catalog item(s) have been marked as low-relevance and may not appear in marketplace search results.
+
+To keep your catalog visible:
+  1. Log in and review your published materials.
+  2. Update descriptions, pricing, or thumbnails.
+  3. Publish new content to signal active stewardship.
+
+Dashboard: https://scholarmarket.test/dashboard
+Profile: https://scholarmarket.test/profile
+
+If you no longer plan to maintain your catalog, consider unpublishing your materials to keep the marketplace high-quality.
+
+
+— ScholarMarket Team
+
+Unsubscribe: https://scholarmarket.test/api/email/unsubscribe?token=eyJlbWFpbCI6ImNyZWF0b3JAZXhhbXBsZS5jb20iLCJjYXRlZ29yeSI6InJlbWluZGVycyJ9.t6zERJldw6uhz6ouZxYq16bHf2SU0w0iDHZQ9p3RkHo
+© 2026 ScholarMarket"
+`;
+
+exports[`email templates > renders the reactivation notice with both parts 1`] = `
+"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  
+  <title>Your ScholarMarket Account Has Been Reactivated</title>
+  <style>
+    @media (prefers-color-scheme:dark){
+      .card{background:#111827!important;color:#e5e7eb!important;}
+      .muted{color:#9ca3af!important;}
+      td{color:#d1d5db!important;}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f6f9fc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6f9fc;">
+    <tr><td align="center" style="padding:24px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;">
+        <tr>
+          <td style="padding:0 0 12px 0;" align="center">
+            <a href="https://scholarmarket.test" style="text-decoration:none;color:#111827;">
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:18px;">ScholarMarket</span>
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td class="card" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+              <tr>
+          <td style="padding:0;">
+            <div style="background:#16a34a;padding:16px 24px;">
+              <p style="margin:0;font-size:13px;font-weight:600;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:0.05em;text-transform:uppercase;">Account Restored</p>
+            </div>
+          </td>
+        </tr>
+              <tr>
+                <td style="padding:24px 24px 8px 24px;">
+                  
+    <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.3;color:#111827;">Your account has been reactivated</h1>
+    <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;">Hi Ada,</p>
+    <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;">Good news — your ScholarMarket account has been fully reinstated. You can now log in and access all features as normal.</p>
+    <p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#374151;">
+      Please review our community guidelines to ensure continued access:
+      <a href="https://scholarmarket.test/terms" style="color:#2563eb;text-decoration:none;">https://scholarmarket.test/terms</a>.
+    </p>
+    <p style="margin:0 0 24px 0;">
+      <a href="https://scholarmarket.test/dashboard" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;padding:12px 16px;border-radius:8px;font-weight:600;font-size:14px;">Go to your dashboard</a>
+    </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:16px 8px 0 8px;">
+            
+            
+            <p class="muted" style="margin:0 0 24px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              &copy; 2026 ScholarMarket
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"
+`;
+
+exports[`email templates > renders the reactivation notice with both parts 2`] = `
+"Hi Ada,
+
+Your ScholarMarket account has been fully reinstated.
+You can now log in and access all features as normal.
+
+Please review our guidelines to ensure continued access: https://scholarmarket.test/terms
+
+
+— ScholarMarket Team
+© 2026 ScholarMarket"
+`;
+
+exports[`email templates > renders the suspension notice with both parts and a default reason 1`] = `
+"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  
+  <title>Your ScholarMarket Account Has Been Suspended</title>
+  <style>
+    @media (prefers-color-scheme:dark){
+      .card{background:#111827!important;color:#e5e7eb!important;}
+      .muted{color:#9ca3af!important;}
+      td{color:#d1d5db!important;}
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f6f9fc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6f9fc;">
+    <tr><td align="center" style="padding:24px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;">
+        <tr>
+          <td style="padding:0 0 12px 0;" align="center">
+            <a href="https://scholarmarket.test" style="text-decoration:none;color:#111827;">
+              <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:18px;">ScholarMarket</span>
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td class="card" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+              <tr>
+          <td style="padding:0;">
+            <div style="background:#dc2626;padding:16px 24px;">
+              <p style="margin:0;font-size:13px;font-weight:600;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:0.05em;text-transform:uppercase;">Account Notice</p>
+            </div>
+          </td>
+        </tr>
+              <tr>
+                <td style="padding:24px 24px 8px 24px;">
+                  
+    <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.3;color:#111827;">Your account has been suspended</h1>
+    <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;">Hi Ada,</p>
+    <p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#374151;">We've temporarily suspended access to your ScholarMarket account. Here's why:</p>
+    <div style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:4px;padding:12px 16px;margin:0 0 20px 0;">
+      <p style="margin:0;font-size:14px;line-height:1.6;color:#7f1d1d;">Violation of ScholarMarket community guidelines or terms of service.</p>
+    </div>
+    <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827;">What this means:</p>
+    <ul style="margin:0 0 20px 0;padding-left:20px;">
+      <li style="font-size:14px;line-height:1.8;color:#374151;">You cannot log in to your account while it is suspended.</li>
+      <li style="font-size:14px;line-height:1.8;color:#374151;">Your published materials will be unlisted for the duration of the suspension.</li>
+      <li style="font-size:14px;line-height:1.8;color:#374151;">Pending payouts may be placed on hold.</li>
+    </ul>
+    <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827;">How to appeal:</p>
+    <p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#374151;">
+      If you believe this action was taken in error, you can appeal by replying to this email or contacting us at
+      <a href="mailto:support@scholarmarket.local" style="color:#2563eb;text-decoration:none;">support@scholarmarket.local</a>.
+      Please include your account email address and a brief explanation.
+    </p>
+    <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827;">Our guidelines:</p>
+    <p style="margin:0 0 24px 0;font-size:14px;line-height:1.6;color:#374151;">
+      You can read our full community guidelines and terms of service at
+      <a href="https://scholarmarket.test/terms" style="color:#2563eb;text-decoration:none;">https://scholarmarket.test/terms</a>.
+    </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:16px 8px 0 8px;">
+            <p class="muted" style="margin:0 0 8px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">You&#39;re receiving this because your ScholarMarket account status changed.</p>
+            
+            <p class="muted" style="margin:0 0 24px 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              &copy; 2026 ScholarMarket
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"
+`;
+
+exports[`email templates > renders the suspension notice with both parts and a default reason 2`] = `
+"Hi Ada,
+
+Your ScholarMarket account has been suspended.
+
+Reason: Violation of ScholarMarket community guidelines or terms of service.
+
+What this means:
+- You cannot log in while your account is suspended.
+- Your published materials will be unlisted for the duration of the suspension.
+- Pending payouts may be placed on hold.
+
+How to appeal:
+Reply to this email or contact us at support@scholarmarket.local. Please include your account
+email address and a brief explanation if you believe this is an error.
+
+Community guidelines: https://scholarmarket.test/terms
+
+
+— ScholarMarket Team
+© 2026 ScholarMarket"
+`;

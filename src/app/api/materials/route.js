@@ -12,6 +12,7 @@ import { withRevisionHistory } from "@/lib/materials/revisions";
 import { cacheGet, cacheSet, invalidateMarketplaceCache } from "@/lib/cache/redis";
 
 import { logger } from "@/lib/logger";
+import { notifyPriceDrop } from "@/lib/backend/priceDropNotifications";
 export const runtime = "nodejs";
 
 function sanitizeMaterial(doc) {
@@ -228,6 +229,10 @@ export async function PUT(request) {
           { $set: updateDoc },
           { returnDocument: "after" }
         );
+
+        if (updates.price !== undefined && Number(updates.price) < Number(existing.price)) {
+          await notifyPriceDrop(db, { materialId, oldPrice: existing.price, newPrice: updates.price });
+        }
 
         const historyEntry = buildMaterialHistoryEntry({
           materialId,

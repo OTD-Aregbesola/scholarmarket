@@ -59,6 +59,45 @@ export async function sendWebhookWithRetry(url, payload) {
   const sent = await sendSignedWebhook(url, payload);
   logger.info(`Webhook sent successfully to ${url}`);
   return sent;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'ScholarMarket-Webhook-Sender/1.0',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        logger.info(`Webhook sent successfully to ${url}`);
+        return true;
+      } else {
+        logger.warn(`Webhook failed (Attempt ${attempt}/${retries}): ${response.status} ${response.statusText}`);
+        const retryable = response.status >= 500 || response.status === 408 || response.status === 429;
+        if (!retryable) {
+          return false;
+        }
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        logger.warn(`Webhook timeout (Attempt ${attempt}/${retries}) for ${url}`);
+      } else {
+        logger.error(`Webhook error (Attempt ${attempt}/${retries}) for ${url}: ${error.message}`);
+      }
+    }
+
+    if (attempt < retries) {
+      // Exponential backoff: 1s, 2s, 4s...
+      const delay = Math.pow(2, attempt - 1) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  logger.error(`Webhook failed permanently after ${retries} attempts for ${url}`);
+  return false;
 }
 
 import { enqueueSideEffect, WEBHOOK_OUTBOX_CONFIG } from '@/lib/backend/outbox';
